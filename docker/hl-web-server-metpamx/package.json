@@ -11,9 +11,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "cs-web-server": "workspace:0.1.1",
-    "cs-web-server-metpamx": "workspace:0.1.1"
-  },
-  "devDependencies": {
+    "cs-web-server": "workspace:*",
+    "cs-web-server-metpamx": "workspace:*"
   }
 }

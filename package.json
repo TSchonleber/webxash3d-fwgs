@@ -9,7 +9,7 @@
     "update-commits-ci": "pnpm run rollback-last && pnpm run update-commits && pnpm run commit-publish"
   },
   "devDependencies": {
-    "@types/node": "^24.9.1",
+    "@types/node": "^24.13.2",
     "lerna": "9.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

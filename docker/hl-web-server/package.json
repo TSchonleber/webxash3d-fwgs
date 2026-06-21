@@ -11,8 +11,6 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "cs-web-server": "workspace:0.1.1"
-  },
-  "devDependencies": {
+    "cs-web-server": "workspace:*"
   }
 }
