@@ -10,7 +10,7 @@ export function GamePanel() {
     <div className="panel">
       <div className="panel-head">
         <h2>Combat <span className="accent">Arena</span></h2>
-        <span className="hint">CS 1.6 \u00b7 WASM \u00b7 WEBRTC</span>
+        <span className="hint">CS 1.6 · WASM · WEBRTC</span>
       </div>
       <div className="game-wrap">
         <div className="game-overlay">
@@ -20,7 +20,7 @@ export function GamePanel() {
             round feed the leaderboard.
           </p>
           <a className="btn" href={GAME_URL} target="_blank" rel="noopener noreferrer">
-            Launch Client \u2197
+            Launch Client ↗
           </a>
         </div>
       </div>
