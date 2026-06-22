@@ -35,7 +35,7 @@ export async function settleHour(matches: MatchResult[], ctx: SettleCtx): Promis
   const { awards } = computeAwards(reindexed, { vaultLamports: ctx.vaultLamports, budgetBps: ctx.budgetBps });
 
   const proofsByWallet: Record<string, Buffer[]> = {};
-  let root = Buffer.alloc(32);
+  let root: Buffer = Buffer.alloc(32);
   let totalAmount = 0n;
   if (awards.length > 0) {
     const tree = buildTree(awards);
