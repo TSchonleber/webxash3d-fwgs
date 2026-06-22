@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { verifyEnvelope, type SignedEnvelope } from "./verify";
 import { MatchStore } from "./store";
 import { rankHour } from "../leaderboard";
@@ -18,6 +19,9 @@ export interface AppDeps {
 export function createApp(deps: AppDeps) {
   const store = deps.store ?? new MatchStore();
   const app = new Hono();
+
+  // Player browsers fetch the leaderboard cross-origin (game page :27016 -> API :8787).
+  app.use("*", cors());
 
   app.get("/health", (c) => c.json({ ok: true }));
 
