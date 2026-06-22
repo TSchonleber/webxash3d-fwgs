@@ -62,6 +62,21 @@
         #warning{ position:fixed; left:0; right:0; bottom:14px; z-index:6; text-align:center; color:var(--mag);
                   font-size:13px; opacity:0; transition:opacity .5s ease }
         audio{ display:none }
+        #connecting, #escMenu{ position:fixed; inset:0; z-index:8; display:none; align-items:center; justify-content:center; flex-direction:column;
+              background:rgba(7,9,11,.93); backdrop-filter:blur(8px); color:var(--txt); font-family:'Chakra Petch',sans-serif }
+        #connecting img{ width:120px; height:120px; border-radius:26px; filter:drop-shadow(0 0 30px rgba(166,229,0,.55)); animation:pulsate 2.2s ease-in-out infinite }
+        #connecting .ct{ margin-top:22px; font-family:'Oxanium'; font-weight:800; letter-spacing:2px; color:var(--lime) }
+        #connecting .cs{ margin-top:6px; color:var(--mut); font-size:14px; font-family:'Spline Sans Mono',monospace }
+        #escMenu .card{ width:min(360px,90vw); background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,.6) }
+        #escMenu .ttl{ text-align:center; font-family:'Oxanium'; font-weight:800; letter-spacing:3px; color:var(--mut); margin-bottom:18px }
+        #escMenu .ttl b{ color:var(--lime) }
+        #escMenu button{ width:100%; font-family:'Oxanium'; font-weight:800; font-size:15px; padding:13px 0; margin-bottom:10px; border-radius:11px; cursor:pointer; border:1px solid var(--line); background:transparent; color:var(--txt) }
+        #escMenu button#escResume{ color:#0a0f04; background:linear-gradient(180deg,var(--lime),var(--lime2)); border-color:transparent }
+        #escMenu button:hover{ border-color:var(--lime) }
+        #escMenu #escQuit{ color:var(--mag); border-color:#3a1622 }
+        #escOptions{ display:none; border-top:1px solid var(--line); margin-top:4px; padding-top:12px }
+        #escOptions label{ display:block; font-size:11px; color:var(--mut); font-family:'Oxanium'; letter-spacing:1px; margin:10px 0 5px }
+        #escOptions input[type=range]{ width:100%; accent-color:var(--lime) }
     </style>
 </head>
 <body>
@@ -82,5 +97,24 @@
     </div>
 </form>
 <p id="warning" class="notDraggable">If it's not starting, enable your microphone and refresh.</p>
+<div id="connecting">
+    <img src="logo.png" alt=""/>
+    <div class="ct">DROPPING INTO THE SERVER</div>
+    <div class="cs">establishing secure match link…</div>
+</div>
+<div id="escMenu">
+    <div class="card">
+        <div class="ttl">CHAIN<b>STRIKE</b></div>
+        <button id="escResume">▸ RESUME</button>
+        <button id="escOptionsBtn">OPTIONS</button>
+        <div id="escOptions">
+            <label>Mouse sensitivity</label>
+            <input type="range" id="escSens" min="0.5" max="6" step="0.1" value="2.5"/>
+            <label>Volume</label>
+            <input type="range" id="escVol" min="0" max="1" step="0.05" value="0.7"/>
+        </div>
+        <button id="escQuit">QUIT TO LOBBY</button>
+    </div>
+</div>
 </body>
 </html>

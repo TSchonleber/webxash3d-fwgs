@@ -138,6 +138,37 @@ async function main() {
         setTimeout(() => x.Cmd_ExecuteString('spectate'), 6000)
     }
 
+    // mask the engine main menu during the connect window
+    setTimeout(() => {
+        const c = document.getElementById('connecting')
+        if (c) { c.style.opacity = '0'; setTimeout(() => { c.style.display = 'none' }, 600) }
+    }, 7000)
+
+    // custom ESC menu (Resume / Options / Quit) layered over the engine menu
+    const canvas = document.getElementById('canvas') as HTMLCanvasElement
+    const esc = document.getElementById('escMenu')!
+    document.addEventListener('pointerlockchange', () => {
+        if (!document.pointerLockElement) esc.style.display = 'flex'
+    })
+    document.getElementById('escResume')!.addEventListener('click', () => {
+        esc.style.display = 'none'
+        x.Cmd_ExecuteString('escape')
+        canvas.requestPointerLock?.()
+    })
+    document.getElementById('escOptionsBtn')!.addEventListener('click', () => {
+        const o = document.getElementById('escOptions')!
+        o.style.display = o.style.display === 'block' ? 'none' : 'block'
+    })
+    document.getElementById('escSens')!.addEventListener('input', (e) => {
+        x.Cmd_ExecuteString('sensitivity ' + (e.target as HTMLInputElement).value)
+    })
+    document.getElementById('escVol')!.addEventListener('input', (e) => {
+        x.Cmd_ExecuteString('volume ' + (e.target as HTMLInputElement).value)
+    })
+    document.getElementById('escQuit')!.addEventListener('click', () => {
+        window.location.href = 'https://54.39.97.84.sslip.io'
+    })
+
     window.addEventListener('beforeunload', (event) => {
         event.preventDefault();
         event.returnValue = '';
@@ -164,20 +195,20 @@ form.addEventListener('submit', (e) => {
     e.preventDefault()
     const username = (document.getElementById('username') as HTMLInputElement).value
     localStorage.setItem('username', username)
-    form.style.display = 'none'
+    form.style.display = 'none'; document.getElementById('connecting')!.style.display = 'flex'
     usernamePromiseResolve(username)
 })
 
 document.getElementById('spectate')!.addEventListener('click', () => {
     spectateMode = true
-    form.style.display = 'none'
+    form.style.display = 'none'; document.getElementById('connecting')!.style.display = 'flex'
     const name = (document.getElementById('username') as HTMLInputElement).value || 'spectator'
     usernamePromiseResolve(name)
 })
 
 // ?spectate -> jump straight into spectator view, no form
 if (spectateMode) {
-    form.style.display = 'none'
+    form.style.display = 'none'; document.getElementById('connecting')!.style.display = 'flex'
     usernamePromiseResolve('spectator')
 }
 
