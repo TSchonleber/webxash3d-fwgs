@@ -104,11 +104,6 @@ async function main() {
     x.em.FS.writeFile(`/rodir/${config.game_dir}/extras.pk3`, new Uint8Array(extras))
     x.em.FS.chdir('/rodir')
 
-    document.getElementById('logo')!.style.animationName = 'pulsate-end'
-    document.getElementById('logo')!.style.animationFillMode = 'forwards'
-    document.getElementById('logo')!.style.animationIterationCount = '1'
-    document.getElementById('logo')!.style.animationDirection = 'normal'
-
     const username = await usernamePromise
     x.main()
     if (touchControls.checked) {
@@ -150,7 +145,6 @@ if (username) {
     const username = (document.getElementById('username') as HTMLInputElement).value
     localStorage.setItem('username', username);
     (document.getElementById('form') as HTMLFormElement).style.display = 'none';
-    (document.getElementById('social') as HTMLDivElement).style.display = 'none';
     usernamePromiseResolve(username)
 })
 
