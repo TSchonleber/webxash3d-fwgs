@@ -7,16 +7,16 @@ const m = (id: string, endedAtMs: number): MatchResult => ({ matchId: id, endedA
 describe("MatchStore", () => {
   it("buckets matches by UTC hour", () => {
     const s = new MatchStore();
-    s.addMatch(m("a", 100 * 3600_000 + 5));
-    s.addMatch(m("b", 100 * 3600_000 + 999));
-    s.addMatch(m("c", 101 * 3600_000));
+    s.addMatch(m("a", 100 * 1_800_000 + 5));
+    s.addMatch(m("b", 100 * 1_800_000 + 999));
+    s.addMatch(m("c", 101 * 1_800_000));
     expect(s.matchesForHour(100).map((x) => x.matchId)).toEqual(["a", "b"]);
     expect(s.matchesForHour(101).map((x) => x.matchId)).toEqual(["c"]);
   });
   it("dedupes by matchId within an hour", () => {
     const s = new MatchStore();
-    s.addMatch(m("a", 100 * 3600_000));
-    s.addMatch(m("a", 100 * 3600_000)); // same id, ignored
+    s.addMatch(m("a", 100 * 1_800_000));
+    s.addMatch(m("a", 100 * 1_800_000)); // same id, ignored
     expect(s.matchesForHour(100)).toHaveLength(1);
   });
   it("stores and returns a settlement for an hour", () => {

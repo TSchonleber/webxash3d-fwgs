@@ -6,11 +6,11 @@ const board = (n: number): RankedEntry[] =>
   Array.from({ length: n }, (_, i) => ({ wallet: `w${i}`, points: 1000 - i, matches: 5, rank: i + 1 }));
 
 describe("computeAwards", () => {
-  it("splits a 10% pool across top 10 by weight, remainder to rank 1, sum == pool", () => {
+  it("splits a 10% pool across top 7 by weight, remainder to rank 1, sum == pool", () => {
     const vault = 1_000_000_000n; // 1 SOL
     const { awards, pool } = computeAwards(board(12), { vaultLamports: vault, budgetBps: 1000 });
     expect(pool).toBe(100_000_000n); // 0.1 SOL
-    expect(awards).toHaveLength(10);
+    expect(awards).toHaveLength(7);
     expect(awards[0].index).toBe(0);
     const sum = awards.reduce((s, a) => s + a.amount, 0n);
     expect(sum).toBe(pool); // exact, no leakage
@@ -18,7 +18,7 @@ describe("computeAwards", () => {
     for (let i = 1; i < awards.length; i++) expect(awards[i - 1].amount >= awards[i].amount).toBe(true);
   });
 
-  it("pays fewer than 10 when the board is short and never exceeds pool", () => {
+  it("pays fewer than 7 when the board is short and never exceeds pool", () => {
     const { awards, pool } = computeAwards(board(3), { vaultLamports: 500_000_000n, budgetBps: 2000 });
     expect(awards).toHaveLength(3);
     const sum = awards.reduce((s, a) => s + a.amount, 0n);

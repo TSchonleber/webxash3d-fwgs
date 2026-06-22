@@ -74,7 +74,7 @@
   <section class="hero">
     <img class="logo" src="/logo.png" alt="ChainStrike"/>
     <h1>Frag for <span class="g">crypto.</span></h1>
-    <p>Counter-Strike 1.6, right in your browser. Climb the hourly leaderboard — the top 10 get paid on Solana.</p>
+    <p>Counter-Strike 1.6, right in your browser. Climb the leaderboard — the top 7 get paid on Solana every 30 minutes.</p>
     <div class="cta-row">
       <a class="play" href="http://54.39.97.84:27016" target="_blank">▸ PLAY NOW</a>
       <a class="ghost" href="#how">How it works</a>
@@ -85,7 +85,7 @@
     <div class="card">
       <div class="lbl">Prize pool · live</div>
       <div class="pool"><span class="dot"></span><b id="pool">— SOL</b></div>
-      <div class="sub"><span id="contenders">0</span> contenders this hour · top 10 paid in SOL</div>
+      <div class="sub"><span id="contenders">0</span> contenders this round · top 7 paid in SOL</div>
     </div>
     <div class="card">
       <div class="lbl">Leaderboard · this hour</div>
@@ -97,8 +97,8 @@
     <h2>How it works</h2>
     <div class="steps">
       <div class="step card"><div class="n">01</div><h3>Jump in</h3><p>Connect with email or wallet and load straight into a live CS 1.6 match — no install, all in-browser.</p></div>
-      <div class="step card"><div class="n">02</div><h3>Climb the board</h3><p>Frags, headshots and round wins earn points. The leaderboard resets every hour, so every hour is a fresh shot.</p></div>
-      <div class="step card"><div class="n">03</div><h3>Get paid</h3><p>When the hour closes, the top 10 are paid out on Solana — verifiably, straight to your wallet.</p></div>
+      <div class="step card"><div class="n">02</div><h3>Climb the board</h3><p>Frags, headshots and round wins earn points. The leaderboard resets every 30 minutes, so every round is a fresh shot.</p></div>
+      <div class="step card"><div class="n">03</div><h3>Get paid</h3><p>When the round closes, the top 7 are paid out on Solana — verifiably, straight to your wallet.</p></div>
     </div>
   </section>
 </div>
@@ -107,8 +107,9 @@
 
 <script>
   const API = "http://54.39.97.84:8787";
-  const hour = Math.floor(Date.now() / 3600000);
   const short = (w) => w.length > 12 ? w.slice(0,4) + "…" + w.slice(-4) : w;
+  function refresh(){
+  const hour = Math.floor(Date.now() / 1800000);
   fetch(`${API}/pool`).then(r => r.ok ? r.json() : null).then(p => {
     if (p) document.getElementById("pool").textContent = (p.sol||0).toLocaleString("en-US",{maximumFractionDigits:3}) + " SOL";
   }).catch(()=>{});
@@ -116,12 +117,15 @@
     document.getElementById("contenders").textContent = board.length;
     const el = document.getElementById("board");
     if (!board.length) { el.innerHTML = '<div class="empty">No matches yet this hour — be the first on the board.</div>'; return; }
-    el.innerHTML = board.slice(0,5).map(e =>
+    el.innerHTML = board.slice(0,7).map(e =>
       `<div class="row r${e.rank}"><span><span class="rank">${e.rank}</span><span class="mono">${short(e.wallet)}</span></span><span class="pts">${e.points}</span></div>`
     ).join("");
   }).catch(() => {
     document.getElementById("board").innerHTML = '<div class="empty">leaderboard offline</div>';
   });
+  }
+  refresh();
+  setInterval(refresh, 20000);
 </script>
 </body>
 </html>

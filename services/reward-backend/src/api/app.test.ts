@@ -16,7 +16,7 @@ function signedEnvelope(result: object, kp: nacl.SignKeyPair) {
 
 const hour = 100;
 const matchAt = (id: string) => ({
-  matchId: id, endedAtMs: hour * 3600_000,
+  matchId: id, endedAtMs: hour * 1_800_000,
   players: Array.from({ length: 10 }, (_, i) => ({
     wallet: wallets[i], team: i < 5 ? "A" : "B", won: i < 5, kills: 15 - i, deaths: 5, headshots: 2,
     shotsFired: 100, shotsHit: 40, avgReactionMs: 300,

@@ -29,22 +29,22 @@ export function PrizePool({ contenders }: Props) {
   }, []);
 
   const { hh, mm, ss } = splitClock(remaining);
-  const pct = Math.min(100, ((3_600_000 - remaining) / 3_600_000) * 100);
+  const pct = Math.min(100, ((1_800_000 - remaining) / 1_800_000) * 100);
   const sol = pool ? pool.sol.toLocaleString("en-US", { maximumFractionDigits: 3 }) : "—";
   const vault = pool?.vaultAddress;
 
   return (
     <section className="hero">
       <div className="prize">
-        <p className="eyebrow">Live Prize Pool · This Hour</p>
+        <p className="eyebrow">Live Prize Pool · This Round</p>
         <h1 className="prize-figure mono">
           {sol}
           <span className="unit">SOL</span>
         </h1>
         <p className="prize-sub">
-          Paid in <b>SOL</b> to the top 10 each hour from the on-chain vault
+          Paid in <b>SOL</b> to the top 7 every 30 min from the on-chain vault
           {vault ? <> (<span className="mono">{vault.slice(0, 4)}…{vault.slice(-4)}</span>)</> : null}.{" "}
-          <b>{contenders}</b> contender{contenders === 1 ? "" : "s"} this hour.
+          <b>{contenders}</b> contender{contenders === 1 ? "" : "s"} this round.
         </p>
       </div>
 
@@ -57,7 +57,7 @@ export function PrizePool({ contenders }: Props) {
           <span className="sep">:</span>
           <span className="seg">{ss}</span>
         </div>
-        <div className="meta">NEXT SETTLEMENT @ TOP OF THE UTC HOUR</div>
+        <div className="meta">NEXT PAYOUT · EVERY 30 MIN</div>
         <div className="bar"><i style={{ width: `${pct}%` }} /></div>
       </div>
     </section>

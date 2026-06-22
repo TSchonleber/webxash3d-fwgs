@@ -22,7 +22,7 @@ describe("settleHour", () => {
       isEligible: async () => true,
     });
     expect(out.awards.length).toBeGreaterThan(0);
-    expect(out.awards.length).toBeLessThanOrEqual(10);
+    expect(out.awards.length).toBeLessThanOrEqual(7);
     const sum = out.awards.reduce((s, a) => s + a.amount, 0n);
     expect(sum).toBe(out.totalAmount);
     // every award has a proof

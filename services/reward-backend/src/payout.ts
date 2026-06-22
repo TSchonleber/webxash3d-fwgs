@@ -1,6 +1,6 @@
 import type { RankedEntry, Award } from "./types";
 
-export const WEIGHTS = [30, 18, 12, 9, 7, 5, 5, 5, 5, 4]; // sum = 100
+export const WEIGHTS = [30, 22, 16, 12, 9, 7, 4]; // top 7, sliding scale, sum = 100
 
 export interface PayoutConfig { vaultLamports: bigint; budgetBps: number; } // budgetBps: 1000 = 10%
 

@@ -6,7 +6,7 @@ const ADMIN = process.env.ADMIN_TOKEN ?? "";
 const RPC = process.env.RPC_URL ?? "http://localhost:8899";
 const ORACLE_KEY = process.env.ORACLE_KEYPAIR ?? "";
 
-function currentUtcHour(): number { return Math.floor(Date.now() / 3_600_000); }
+function currentUtcHour(): number { return Math.floor(Date.now() / 1_800_000); }
 
 function parseArgs() {
   const a = process.argv.slice(2);

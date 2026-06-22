@@ -13,7 +13,7 @@ export function Leaderboard({ entries, loading, hour, me }: Props) {
     <div className="panel">
       <div className="panel-head">
         <h2>Live <span className="accent">Leaderboard</span></h2>
-        <span className="hint">HOUR #{hour} · REFRESH 10s</span>
+        <span className="hint">ROUND #{hour} · REFRESH 10s</span>
       </div>
 
       {entries.length === 0 ? (
@@ -21,7 +21,7 @@ export function Leaderboard({ entries, loading, hour, me }: Props) {
           {loading ? (
             <><span className="spin" />Pulling live standings…</>
           ) : (
-            <>No frags logged this hour yet — be the first on the board.</>
+            <>No frags logged this round yet — be the first on the board.</>
           )}
         </div>
       ) : (

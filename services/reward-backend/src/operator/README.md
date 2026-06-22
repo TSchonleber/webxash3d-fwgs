@@ -16,7 +16,7 @@ The oracle key lives only here, never in the public API.
     RPC_URL=https://api.devnet.solana.com
     ORACLE_KEYPAIR=/abs/path/to/oracle.json
 
-## Pay the top 10 — WHEN YOU CHOOSE (one-shot, settles the just-finished UTC hour)
+## Pay the top 7 — WHEN YOU CHOOSE (one-shot, settles the just-finished 30-min period)
     npm run operator
     npm run operator -- --hour 495034     # or a specific hour bucket
 

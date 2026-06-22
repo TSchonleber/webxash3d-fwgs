@@ -31,7 +31,7 @@ export async function settleHour(matches: MatchResult[], ctx: SettleCtx): Promis
   const eligible = [];
   for (const e of board) if (await ctx.isEligible(e.wallet)) eligible.push(e);
 
-  const reindexed = eligible.slice(0, 10).map((e, i) => ({ ...e, rank: i + 1 }));
+  const reindexed = eligible.slice(0, 7).map((e, i) => ({ ...e, rank: i + 1 }));
   const { awards } = computeAwards(reindexed, { vaultLamports: ctx.vaultLamports, budgetBps: ctx.budgetBps });
 
   const proofsByWallet: Record<string, Buffer[]> = {};

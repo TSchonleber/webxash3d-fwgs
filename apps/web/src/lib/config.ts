@@ -12,10 +12,10 @@ export const DEMO_WALLET = "Dmo7xAshArEna1111111111111111111111111111111";
 
 /** UTC hour bucket (unix-hours) used as the period id, matching the backend. */
 export function currentUtcHour(now: number = Date.now()): number {
-  return Math.floor(now / 3_600_000);
+  return Math.floor(now / 1_800_000); // 30-min period
 }
 
 /** ms remaining until the top of the next UTC hour. */
 export function msToNextHour(now: number = Date.now()): number {
-  return 3_600_000 - (now % 3_600_000);
+  return 1_800_000 - (now % 1_800_000);
 }
