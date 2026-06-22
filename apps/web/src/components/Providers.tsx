@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 import { PrivyProvider } from "@privy-io/react-auth";
+import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
 import { AppContextProvider } from "../lib/context";
 import { AuthProvider } from "../lib/auth";
 import { DEV_BYPASS, PRIVY_APP_ID } from "../lib/config";
+
+const solanaConnectors = toSolanaWalletConnectors();
 
 /**
  * Root providers.
@@ -24,8 +27,14 @@ export function Providers({ children }: { children: ReactNode }) {
     <PrivyProvider
       appId={PRIVY_APP_ID}
       config={{
-        appearance: { theme: "dark", accentColor: "#c6ff3d", walletChainType: "solana-only" },
+        appearance: {
+          theme: "dark",
+          accentColor: "#c6ff3d",
+          walletChainType: "solana-only",
+          walletList: ["phantom", "jupiter", "solflare", "detected_solana_wallets", "backpack"],
+        },
         loginMethods: ["email", "wallet"],
+        externalWallets: { solana: { connectors: solanaConnectors } },
         embeddedWallets: {
           solana: { createOnLogin: "users-without-wallets" },
         },
