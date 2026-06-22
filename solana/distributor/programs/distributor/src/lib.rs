@@ -48,6 +48,46 @@ pub mod distributor {
         p.bump = ctx.bumps.period;
         Ok(())
     }
+
+    pub fn claim(
+        ctx: Context<Claim>,
+        _period_id: u64,
+        index: u64,
+        amount: u64,
+        proof: Vec<[u8; 32]>,
+    ) -> Result<()> {
+        let claimant = ctx.accounts.claimant.key();
+
+        // leaf = keccak(index_le || claimant || amount_le)
+        let mut leaf_pre = Vec::with_capacity(8 + 32 + 8);
+        leaf_pre.extend_from_slice(&index.to_le_bytes());
+        leaf_pre.extend_from_slice(claimant.as_ref());
+        leaf_pre.extend_from_slice(&amount.to_le_bytes());
+        let mut node = anchor_lang::solana_program::keccak::hash(&leaf_pre).0;
+
+        for sib in proof.iter() {
+            let (lo, hi) = if node <= *sib { (node, *sib) } else { (*sib, node) };
+            let mut buf = [0u8; 64];
+            buf[..32].copy_from_slice(&lo);
+            buf[32..].copy_from_slice(&hi);
+            node = anchor_lang::solana_program::keccak::hash(&buf).0;
+        }
+        require!(node == ctx.accounts.period.merkle_root, DistributorError::InvalidProof);
+
+        let period = &mut ctx.accounts.period;
+        require!(
+            period.claimed_amount.checked_add(amount).unwrap() <= period.total_amount,
+            DistributorError::PeriodTotalExceeded
+        );
+        period.claimed_amount = period.claimed_amount.checked_add(amount).unwrap();
+
+        // move lamports from program-owned vault PDA to claimant
+        **ctx.accounts.vault.to_account_info().try_borrow_mut_lamports()? -= amount;
+        **ctx.accounts.claimant.to_account_info().try_borrow_mut_lamports()? += amount;
+
+        ctx.accounts.claim_status.claimed = true;
+        Ok(())
+    }
 }
 
 #[account]
@@ -124,6 +164,31 @@ pub struct PublishPeriod<'info> {
     pub period: Account<'info, Period>,
     #[account(mut)]
     pub oracle: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[account]
+pub struct ClaimStatus {
+    pub claimed: bool,
+}
+impl ClaimStatus {
+    pub const LEN: usize = 8 + 1;
+}
+
+#[derive(Accounts)]
+#[instruction(period_id: u64)]
+pub struct Claim<'info> {
+    #[account(mut, seeds = [b"period", period_id.to_le_bytes().as_ref()], bump = period.bump)]
+    pub period: Account<'info, Period>,
+    #[account(mut, seeds = [b"vault"], bump = vault.bump)]
+    pub vault: Account<'info, Vault>,
+    #[account(
+        init, payer = claimant, space = ClaimStatus::LEN,
+        seeds = [b"claim", period_id.to_le_bytes().as_ref(), claimant.key().as_ref()], bump
+    )]
+    pub claim_status: Account<'info, ClaimStatus>,
+    #[account(mut)]
+    pub claimant: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 

@@ -3,6 +3,7 @@ import { Program } from "@coral-xyz/anchor";
 import { Distributor } from "../target/types/distributor";
 import { PublicKey, Keypair } from "@solana/web3.js";
 import { assert } from "chai";
+import { buildTree, Award } from "./merkle";
 
 describe("distributor", () => {
   const provider = anchor.AnchorProvider.env();
@@ -93,5 +94,65 @@ describe("distributor", () => {
         .accounts({ oracle: stranger.publicKey }).signers([stranger]).rpc();
     } catch { failed2 = true; }
     assert.isTrue(failed2, "non-oracle publish must fail");
+  });
+
+  const claimStatusPda = (id: number, who: PublicKey) =>
+    PublicKey.findProgramAddressSync(
+      [Buffer.from("claim"), new anchor.BN(id).toArrayLike(Buffer, "le", 8), who.toBuffer()],
+      program.programId
+    )[0];
+
+  it("pays a valid claim, rejects bad proof, blocks double-claim", async () => {
+    const oracle = Keypair.generate();
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(oracle.publicKey, 2e9));
+    await program.methods.setOracle(oracle.publicKey).accounts({ admin: admin.publicKey }).rpc();
+
+    const winner = Keypair.generate();
+    const other = Keypair.generate();
+    const awards: Award[] = [
+      { index: 0, claimant: winner.publicKey, amount: new anchor.BN(5e8) },
+      { index: 1, claimant: other.publicKey, amount: new anchor.BN(3e8) },
+    ];
+    const { root, proofs } = buildTree(awards);
+
+    const PERIOD = 200;
+    await program.methods
+      .publishPeriod(new anchor.BN(PERIOD), [...root], new anchor.BN(8e8))
+      .accounts({ oracle: oracle.publicKey }).signers([oracle]).rpc();
+
+    // winner needs lamports to pay rent for its claim_status PDA (payer = claimant)
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(winner.publicKey, 1e7));
+    // measure the payout via the vault's balance decrease (exactly the award,
+    // independent of the rent the claimant pays for claim_status)
+    const vaultBefore = await provider.connection.getBalance(vaultPda());
+    const before = await provider.connection.getBalance(winner.publicKey);
+    await program.methods
+      .claim(new anchor.BN(PERIOD), new anchor.BN(0), new anchor.BN(5e8),
+        proofs[0].map((b) => [...b]))
+      .accounts({ claimant: winner.publicKey }).signers([winner]).rpc();
+    const after = await provider.connection.getBalance(winner.publicKey);
+    const vaultAfter = await provider.connection.getBalance(vaultPda());
+    assert.equal(vaultBefore - vaultAfter, 5e8);
+    assert.isAbove(after, before); // winner netted the payout minus claim_status rent
+
+    // double-claim must fail
+    let dbl = false;
+    try {
+      await program.methods.claim(new anchor.BN(PERIOD), new anchor.BN(0), new anchor.BN(5e8),
+        proofs[0].map((b) => [...b]))
+        .accounts({ claimant: winner.publicKey }).signers([winner]).rpc();
+    } catch { dbl = true; }
+    assert.isTrue(dbl, "double claim must fail");
+
+    // wrong amount / bad proof must fail
+    let bad = false;
+    try {
+      await program.methods.claim(new anchor.BN(PERIOD), new anchor.BN(1), new anchor.BN(9e8),
+        proofs[1].map((b) => [...b]))
+        .accounts({ claimant: other.publicKey }).signers([other]).rpc();
+    } catch { bad = true; }
+    assert.isTrue(bad, "claim with wrong amount must fail");
   });
 });
