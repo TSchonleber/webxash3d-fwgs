@@ -62,6 +62,21 @@
   .step p{ color:var(--mut); font-size:15px; line-height:1.5 }
   footer{ border-top:1px solid var(--line); padding:26px 0; text-align:center; color:var(--mut); font-size:13px }
   footer .mag{ color:var(--mag) }
+  .matches{ padding:10px 0 30px }
+  .matches h2{ font-family:'Oxanium'; font-weight:800; font-size:30px; text-align:center; margin-bottom:8px }
+  .matches .lede{ text-align:center; color:var(--mut); margin-bottom:28px }
+  .match-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px }
+  @media(max-width:760px){ .match-grid{ grid-template-columns:1fr } }
+  .match .m-top{ display:flex; align-items:center; justify-content:space-between }
+  .match .m-name{ font-family:'Oxanium'; font-weight:800; font-size:20px }
+  .m-live{ display:inline-flex; align-items:center; gap:7px; font-family:'Spline Sans Mono'; font-size:11px; color:var(--mag); letter-spacing:1px }
+  .m-live .dot{ width:7px; height:7px; border-radius:50%; background:var(--mag); box-shadow:0 0 8px var(--mag); animation:pulse 1.4s infinite }
+  .m-map{ color:var(--mut); font-size:14px; margin:8px 0 18px; font-family:'Spline Sans Mono' }
+  .m-btns{ display:flex; gap:10px }
+  .m-btns a{ flex:1; text-align:center; font-family:'Oxanium'; font-weight:800; font-size:14px; padding:11px 0; border-radius:10px }
+  .m-play{ color:#0a0f04; background:linear-gradient(180deg,var(--lime),var(--lime2)) }
+  .m-spec{ color:var(--txt); border:1px solid var(--line) }
+  .m-spec:hover{ border-color:var(--lime); color:var(--lime) }
 </style>
 </head>
 <body>
@@ -76,7 +91,7 @@
     <h1>Frag for <span class="g">crypto.</span></h1>
     <p>Counter-Strike 1.6, right in your browser. Climb the leaderboard — the top 7 get paid on Solana every 30 minutes.</p>
     <div class="cta-row">
-      <a class="play" href="http://54.39.97.84:27016" target="_blank">▸ PLAY NOW</a>
+      <a class="play" href="#matches">▸ PLAY NOW</a>
       <a class="ghost" href="#how">How it works</a>
     </div>
   </section>
@@ -90,6 +105,28 @@
     <div class="card">
       <div class="lbl">Leaderboard · this hour</div>
       <div id="board" style="margin-top:12px"><div class="empty">loading…</div></div>
+    </div>
+  </section>
+
+  <section class="matches" id="matches">
+    <h2>Live matches</h2>
+    <p class="lede">Jump into any live server — or spectate the action.</p>
+    <div class="match-grid">
+      <div class="match card">
+        <div class="m-top"><span class="m-name">Match 1</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
+        <div class="m-map">de_dust2 · 16 slots</div>
+        <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27016" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27016/?spectate" target="_blank">Spectate</a></div>
+      </div>
+      <div class="match card">
+        <div class="m-top"><span class="m-name">Match 2</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
+        <div class="m-map">de_dust2 · 16 slots</div>
+        <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27116" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27116/?spectate" target="_blank">Spectate</a></div>
+      </div>
+      <div class="match card">
+        <div class="m-top"><span class="m-name">Match 3</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
+        <div class="m-map">de_dust2 · 16 slots</div>
+        <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27216" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27216/?spectate" target="_blank">Spectate</a></div>
+      </div>
     </div>
   </section>
 
