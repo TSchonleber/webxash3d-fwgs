@@ -155,4 +155,35 @@ describe("distributor", () => {
     } catch { bad = true; }
     assert.isTrue(bad, "claim with wrong amount must fail");
   });
+
+  it("end-to-end: fund -> publish hour -> top-10 each claim once", async () => {
+    const oracle = Keypair.generate();
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(oracle.publicKey, 2e9));
+    await program.methods.setOracle(oracle.publicKey).accounts({ admin: admin.publicKey }).rpc();
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(vaultPda(), 2e9));
+
+    const winners = Array.from({ length: 10 }, () => Keypair.generate());
+    const per = new anchor.BN(1e8); // 0.1 SOL each => 1 SOL total
+    const awards: Award[] = winners.map((w, i) => ({ index: i, claimant: w.publicKey, amount: per }));
+    const { root, proofs } = buildTree(awards);
+
+    const HOUR = 481968; // example UTC hour bucket
+    await program.methods.publishPeriod(new anchor.BN(HOUR), [...root], new anchor.BN(1e9))
+      .accounts({ oracle: oracle.publicKey }).signers([oracle]).rpc();
+
+    for (let i = 0; i < winners.length; i++) {
+      const w = winners[i];
+      await provider.connection.confirmTransaction(
+        await provider.connection.requestAirdrop(w.publicKey, 1e7)); // rent for claim_status
+      const before = await provider.connection.getBalance(w.publicKey);
+      await program.methods.claim(new anchor.BN(HOUR), new anchor.BN(i), per, proofs[i].map((b) => [...b]))
+        .accounts({ claimant: w.publicKey }).signers([w]).rpc();
+      const after = await provider.connection.getBalance(w.publicKey);
+      assert.isAbove(after, before); // received payout (net of claim_status rent)
+    }
+    const p = await program.account.period.fetch(periodPda(HOUR));
+    assert.equal(p.claimedAmount.toNumber(), 1e9);
+  });
 });
