@@ -9,11 +9,10 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
-  resolve: {
-    alias: {
-      // Use the browser Buffer shim so @coral-xyz/anchor works in the browser.
-      buffer: 'buffer',
-    },
+  // Pre-bundle the Buffer shim so the runtime polyfill in main.tsx resolves
+  // to the real npm package (not Vite's externalized stub).
+  optimizeDeps: {
+    include: ['buffer'],
   },
   test: {
     environment: 'node',

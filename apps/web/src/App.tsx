@@ -1,122 +1,80 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import "./theme.css";
+import { AuthGate } from "./components/AuthGate";
+import { EligibilityBadge } from "./components/EligibilityBadge";
+import { PrizePool } from "./components/PrizePool";
+import { Leaderboard } from "./components/Leaderboard";
+import { GamePanel } from "./components/GamePanel";
+import { ClaimPanel } from "./components/ClaimPanel";
+import { useAuth } from "./lib/auth";
+import { useLeaderboard } from "./lib/useLeaderboard";
+import { DEV_BYPASS } from "./lib/config";
+import { demoLeaderboard, DEMO_POOL_LAMPORTS } from "./lib/demo";
+import { shortWallet } from "./lib/format";
 
-function App() {
-  const [count, setCount] = useState(0)
+function TopBar() {
+  const { walletAddress, authenticated, logout } = useAuth();
+  return (
+    <header className="topbar">
+      <div className="brand">
+        <span className="glyph">X</span>
+        <span>WEB<b>XASH</b><span className="div">/</span>ARENA</span>
+      </div>
+      <div className="topbar-right">
+        <span className="live"><span className="dot" /> Live</span>
+        <EligibilityBadge />
+        {walletAddress && (
+          <span className="wallet-chip mono">
+            <b>◎</b> {shortWallet(walletAddress)}
+          </span>
+        )}
+        {authenticated && !DEV_BYPASS && (
+          <button className="btn ghost" onClick={logout}>Log out</button>
+        )}
+      </div>
+    </header>
+  );
+}
+
+/** Derive a display pool from total points (1 point ≈ 250 $TOKEN), in lamports. */
+function poolFromBoard(entries: { points: number }[]): string {
+  const totalPoints = entries.reduce((s, e) => s + e.points, 0);
+  const lamports = BigInt(totalPoints) * 250n * 1_000_000_000n;
+  return lamports.toString();
+}
+
+function Dashboard() {
+  const { walletAddress } = useAuth();
+  const live = useLeaderboard();
+
+  // In dev-bypass with no API running, populate the board so the UI renders fully.
+  const entries = live.entries.length > 0 ? live.entries : DEV_BYPASS ? demoLeaderboard() : [];
+  const pool =
+    live.entries.length === 0 && DEV_BYPASS ? DEMO_POOL_LAMPORTS : poolFromBoard(entries);
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      <TopBar />
+      <PrizePool poolLamports={pool} contenders={entries.length} />
+      <div className="grid">
+        <Leaderboard
+          entries={entries}
+          loading={live.loading && entries.length === 0}
+          hour={live.hour}
+          me={walletAddress}
+        />
+        <GamePanel />
+      </div>
+      <ClaimPanel />
     </>
-  )
+  );
 }
 
-export default App
+export default function App() {
+  return (
+    <div className="app">
+      <AuthGate>
+        <Dashboard />
+      </AuthGate>
+    </div>
+  );
+}

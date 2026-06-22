@@ -2,7 +2,10 @@ export interface RankedEntry { wallet: string; points: number; matches: number; 
 export interface ClaimData { periodId: number; index: number; amount: string; proof: string[]; }
 
 export class RewardApi {
-  constructor(private base: string) {}
+  private base: string;
+  constructor(base: string) {
+    this.base = base;
+  }
 
   async leaderboard(hour: number): Promise<RankedEntry[]> {
     const res = await fetch(`${this.base}/leaderboard/${hour}`);
