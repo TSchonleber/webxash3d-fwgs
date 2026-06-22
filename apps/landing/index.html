@@ -83,9 +83,9 @@
 
   <section class="live">
     <div class="card">
-      <div class="lbl">Live this hour</div>
-      <div class="pool"><span class="dot"></span><b id="contenders">—</b></div>
-      <div class="sub">contenders competing · top 10 paid every hour</div>
+      <div class="lbl">Prize pool · live</div>
+      <div class="pool"><span class="dot"></span><b id="pool">— SOL</b></div>
+      <div class="sub"><span id="contenders">0</span> contenders this hour · top 10 paid in SOL</div>
     </div>
     <div class="card">
       <div class="lbl">Leaderboard · this hour</div>
@@ -109,6 +109,9 @@
   const API = "http://54.39.97.84:8787";
   const hour = Math.floor(Date.now() / 3600000);
   const short = (w) => w.length > 12 ? w.slice(0,4) + "…" + w.slice(-4) : w;
+  fetch(`${API}/pool`).then(r => r.ok ? r.json() : null).then(p => {
+    if (p) document.getElementById("pool").textContent = (p.sol||0).toLocaleString("en-US",{maximumFractionDigits:3}) + " SOL";
+  }).catch(()=>{});
   fetch(`${API}/leaderboard/${hour}`).then(r => r.ok ? r.json() : []).then(board => {
     document.getElementById("contenders").textContent = board.length;
     const el = document.getElementById("board");

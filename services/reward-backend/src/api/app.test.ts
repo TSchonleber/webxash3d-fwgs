@@ -113,4 +113,15 @@ describe("createApp", () => {
     const res = await createApp(deps).request("/resolve/ghost");
     expect(res.status).toBe(404);
   });
+
+  it("reports the live vault pool balance in SOL", async () => {
+    const app = createApp({ ...deps, poolReader: async () => ({ vaultAddress: "VaULTaddr", lamports: 2_000_000_000 }) });
+    const res = await app.request("/pool");
+    expect(res.status).toBe(200);
+    const j = await res.json();
+    expect(j.vaultAddress).toBe("VaULTaddr");
+    expect(j.sol).toBe(2);
+    expect(j.denom).toBe("SOL");
+  });
+
 });

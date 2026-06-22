@@ -14,6 +14,7 @@ export interface AppDeps {
   isEligible: (wallet: string) => Promise<boolean>;
   store?: MatchStore;
   adminToken?: string;
+  poolReader?: () => Promise<{ vaultAddress: string; lamports: number }>;
 }
 
 export function createApp(deps: AppDeps) {
@@ -24,6 +25,17 @@ export function createApp(deps: AppDeps) {
   app.use("*", cors());
 
   app.get("/health", (c) => c.json({ ok: true }));
+
+  // Live prize pool = the on-chain vault's SOL balance.
+  app.get("/pool", async (c) => {
+    if (!deps.poolReader) return c.json({ vaultAddress: null, lamports: 0, sol: 0, denom: "SOL" });
+    try {
+      const { vaultAddress, lamports } = await deps.poolReader();
+      return c.json({ vaultAddress, lamports, sol: lamports / 1e9, denom: "SOL" });
+    } catch {
+      return c.json({ vaultAddress: null, lamports: 0, sol: 0, denom: "SOL" });
+    }
+  });
 
   app.post("/results", async (c) => {
     const env = (await c.req.json()) as SignedEnvelope;
@@ -40,8 +52,11 @@ export function createApp(deps: AppDeps) {
 
   app.post("/settle/:hour", async (c) => {
     const hour = Number(c.req.param("hour"));
+    const vaultLamports = deps.poolReader
+      ? BigInt(Math.floor((await deps.poolReader()).lamports))
+      : deps.vaultLamports;
     const s = await settleHour(store.matchesForHour(hour), {
-      vaultLamports: deps.vaultLamports, budgetBps: deps.budgetBps,
+      vaultLamports, budgetBps: deps.budgetBps,
       minMatches: deps.minMatches, isEligible: deps.isEligible, periodId: hour,
     });
     store.saveSettlement(hour, s);
