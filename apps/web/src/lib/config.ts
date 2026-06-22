@@ -2,6 +2,7 @@
 
 export const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS === "1";
 export const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8787";
+export const GAME_URL = import.meta.env.VITE_GAME_URL ?? "http://54.39.97.84:27016";
 export const RPC_URL = import.meta.env.VITE_RPC_URL ?? "https://api.devnet.solana.com";
 export const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID ?? "";
 export const DISTRIBUTOR_PROGRAM_ID =
