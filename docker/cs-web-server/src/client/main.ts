@@ -128,10 +128,14 @@ async function main() {
         })
     }
     
-    x.Cmd_ExecuteString('connect 127.0.0.1:8080')
+    // Drop straight into the configured session; retry in case the first
+    // connect fires before the engine has left the main menu.
+    const joinServer = () => x.Cmd_ExecuteString('connect 127.0.0.1:8080')
+    joinServer()
+    setTimeout(joinServer, 2000)
+    setTimeout(joinServer, 5000)
     if (spectateMode) {
-        // join as a free-look spectator once in-game
-        setTimeout(() => x.Cmd_ExecuteString('spectate'), 3500)
+        setTimeout(() => x.Cmd_ExecuteString('spectate'), 6000)
     }
 
     window.addEventListener('beforeunload', (event) => {

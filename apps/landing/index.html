@@ -65,7 +65,7 @@
   .matches{ padding:10px 0 30px }
   .matches h2{ font-family:'Oxanium'; font-weight:800; font-size:30px; text-align:center; margin-bottom:8px }
   .matches .lede{ text-align:center; color:var(--mut); margin-bottom:28px }
-  .match-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px }
+  .match-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px }
   @media(max-width:760px){ .match-grid{ grid-template-columns:1fr } }
   .match .m-top{ display:flex; align-items:center; justify-content:space-between }
   .match .m-name{ font-family:'Oxanium'; font-weight:800; font-size:20px }
@@ -113,19 +113,29 @@
     <p class="lede">Jump into any live server — or spectate the action.</p>
     <div class="match-grid">
       <div class="match card">
-        <div class="m-top"><span class="m-name">Match 1</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
+        <div class="m-top"><span class="m-name">Vault Raid</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
         <div class="m-map">de_dust2 · 16 slots</div>
         <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27016" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27016/?spectate" target="_blank">Spectate</a></div>
       </div>
       <div class="match card">
-        <div class="m-top"><span class="m-name">Match 2</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
-        <div class="m-map">de_dust2 · 16 slots</div>
+        <div class="m-top"><span class="m-name">Hashpoint</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
+        <div class="m-map">de_inferno · 16 slots</div>
         <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27116" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27116/?spectate" target="_blank">Spectate</a></div>
       </div>
       <div class="match card">
-        <div class="m-top"><span class="m-name">Match 3</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
-        <div class="m-map">de_dust2 · 16 slots</div>
+        <div class="m-top"><span class="m-name">Degen Dust</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
+        <div class="m-map">de_aztec · 16 slots</div>
         <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27216" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27216/?spectate" target="_blank">Spectate</a></div>
+      </div>
+      <div class="match card">
+        <div class="m-top"><span class="m-name">Cold Storage</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
+        <div class="m-map">de_nuke · 16 slots</div>
+        <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27316" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27316/?spectate" target="_blank">Spectate</a></div>
+      </div>
+      <div class="match card">
+        <div class="m-top"><span class="m-name">Liquidation</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
+        <div class="m-map">de_train · 16 slots</div>
+        <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27416" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27416/?spectate" target="_blank">Spectate</a></div>
       </div>
     </div>
   </section>
