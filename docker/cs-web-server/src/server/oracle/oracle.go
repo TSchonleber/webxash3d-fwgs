@@ -21,16 +21,16 @@ func (s *Signer) Sign(res MatchResult) (payload, sig []byte) {
 }
 
 type envelope struct {
-	Result       json.RawMessage `json:"result"`
-	Signature    string          `json:"signature"`
-	ServerPubkey string          `json:"serverPubkey"`
+	Result       string `json:"result"`       // exact JSON bytes that were signed
+	Signature    string `json:"signature"`    // base64
+	ServerPubkey string `json:"serverPubkey"` // base64 (raw 32-byte ed25519 pubkey)
 }
 
 // Post signs the result and POSTs the signed envelope to url.
 func (s *Signer) Post(url string, res MatchResult) error {
 	payload, sig := s.Sign(res)
 	env := envelope{
-		Result:       payload,
+		Result:       string(payload),
 		Signature:    base64.StdEncoding.EncodeToString(sig),
 		ServerPubkey: base64.StdEncoding.EncodeToString(s.priv.Public().(ed25519.PublicKey)),
 	}
