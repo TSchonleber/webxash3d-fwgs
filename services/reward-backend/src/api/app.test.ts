@@ -72,4 +72,28 @@ describe("createApp", () => {
     const miss = await app.request(`/claim/${hour}/NOBODY`);
     expect(miss.status).toBe(404);
   });
+
+  it("admin settlement export requires the admin token and returns proofs", async () => {
+    const app = createApp({ ...deps, adminToken: "secret" });
+    // ingest + settle first
+    await app.request("/results", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(signedEnvelope(matchAt("m1"), kp)) });
+    await app.request(`/settle/${hour}`, { method: "POST" });
+
+    const noAuth = await app.request(`/admin/settlement/${hour}`);
+    expect(noAuth.status).toBe(401);
+
+    const ok = await app.request(`/admin/settlement/${hour}`, { headers: { authorization: "Bearer secret" } });
+    expect(ok.status).toBe(200);
+    const body = await ok.json();
+    expect(body.rootHex).toMatch(/^[0-9a-f]{64}$/);
+    expect(body.total).toBe("100000000");
+    expect(body.awards.length).toBeGreaterThan(0);
+    expect(body.awards[0].proofHex).toBeDefined();
+  });
+
+  it("admin routes are 404 when no admin token configured", async () => {
+    const app = createApp(deps); // no adminToken
+    const res = await app.request(`/admin/settlement/${hour}`, { headers: { authorization: "Bearer x" } });
+    expect(res.status).toBe(404);
+  });
 });

@@ -12,6 +12,7 @@ export interface AppDeps {
   budgetBps: number;
   isEligible: (wallet: string) => Promise<boolean>;
   store?: MatchStore;
+  adminToken?: string;
 }
 
 export function createApp(deps: AppDeps) {
@@ -59,6 +60,30 @@ export function createApp(deps: AppDeps) {
     } catch {
       return c.json({ error: "not a winner" }, 404);
     }
+  });
+
+  // --- admin (operator) routes ---
+  const requireAdmin = (c: any): Response | null => {
+    if (!deps.adminToken) return c.json({ error: "admin disabled" }, 404);
+    const auth = c.req.header("authorization") ?? "";
+    if (auth !== `Bearer ${deps.adminToken}`) return c.json({ error: "unauthorized" }, 401);
+    return null;
+  };
+
+  app.get("/admin/settlement/:hour", (c) => {
+    const denied = requireAdmin(c); if (denied) return denied;
+    const hour = Number(c.req.param("hour"));
+    const s = store.getSettlement(hour);
+    if (!s) return c.json({ error: "hour not settled" }, 404);
+    return c.json({
+      periodId: s.periodId,
+      rootHex: Buffer.from(s.root).toString("hex"),
+      total: s.totalAmount.toString(),
+      awards: s.awards.map((a) => ({
+        index: a.index, wallet: a.wallet, amount: a.amount.toString(),
+        proofHex: s.proofsByWallet[a.wallet].map((b) => Buffer.from(b).toString("hex")),
+      })),
+    });
   });
 
   return app;
