@@ -13,6 +13,8 @@ const usernamePromise = new Promise<string>(resolve => {
     usernamePromiseResolve = resolve
 })
 
+let spectateMode = new URLSearchParams(window.location.search).has('spectate')
+
 async function fetchWithProgress(url: string) {
     const progress = document.getElementById('progress') as HTMLProgressElement
     const res = await fetch(url);
@@ -127,6 +129,10 @@ async function main() {
     }
     
     x.Cmd_ExecuteString('connect 127.0.0.1:8080')
+    if (spectateMode) {
+        // join as a free-look spectator once in-game
+        setTimeout(() => x.Cmd_ExecuteString('spectate'), 3500)
+    }
 
     window.addEventListener('beforeunload', (event) => {
         event.preventDefault();
@@ -148,12 +154,27 @@ if (username) {
     (document.getElementById('username') as HTMLInputElement).value = username
 }
 
-(document.getElementById('form') as HTMLFormElement).addEventListener('submit', (e) => {
+const form = document.getElementById('form') as HTMLFormElement
+
+form.addEventListener('submit', (e) => {
     e.preventDefault()
     const username = (document.getElementById('username') as HTMLInputElement).value
-    localStorage.setItem('username', username);
-    (document.getElementById('form') as HTMLFormElement).style.display = 'none';
+    localStorage.setItem('username', username)
+    form.style.display = 'none'
     usernamePromiseResolve(username)
 })
+
+document.getElementById('spectate')!.addEventListener('click', () => {
+    spectateMode = true
+    form.style.display = 'none'
+    const name = (document.getElementById('username') as HTMLInputElement).value || 'spectator'
+    usernamePromiseResolve(name)
+})
+
+// ?spectate -> jump straight into spectator view, no form
+if (spectateMode) {
+    form.style.display = 'none'
+    usernamePromiseResolve('spectator')
+}
 
 main()
