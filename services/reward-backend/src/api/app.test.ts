@@ -96,4 +96,21 @@ describe("createApp", () => {
     const res = await app.request(`/admin/settlement/${hour}`, { headers: { authorization: "Bearer x" } });
     expect(res.status).toBe(404);
   });
+
+  it("registers a player name -> wallet and resolves it", async () => {
+    const app = createApp(deps);
+    const reg = await app.request("/register", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ playerName: "neo", wallet: "WalletNeo" }),
+    });
+    expect(reg.status).toBe(200);
+    const res = await app.request("/resolve/neo");
+    expect(res.status).toBe(200);
+    expect((await res.json()).wallet).toBe("WalletNeo");
+  });
+
+  it("resolve returns 404 for unknown name", async () => {
+    const res = await createApp(deps).request("/resolve/ghost");
+    expect(res.status).toBe(404);
+  });
 });
