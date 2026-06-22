@@ -1,9 +1,8 @@
-import { GAME_URL } from "../lib/config";
+import { LOBBY_URL } from "../lib/config";
 
 /**
- * The playable client lives on the standalone cs-web-server (with the CS 1.6
- * assets + WebRTC). The dashboard just launches it rather than re-embedding a
- * second copy (which has no valve.zip and no server on its own origin).
+ * Sends players to the match lobby (the landing's "Live matches" section) so
+ * they pick a server, rather than dropping into one fixed match.
  */
 export function GamePanel() {
   return (
@@ -14,13 +13,13 @@ export function GamePanel() {
       </div>
       <div className="game-wrap">
         <div className="game-overlay">
-          <h3>Drop Into the Server</h3>
+          <h3>Pick Your Match</h3>
           <p>
-            Launch the browser-native Counter-Strike 1.6 client. Your frags this
-            round feed the leaderboard.
+            Browse the live ChainStrike servers and jump into any one — or
+            spectate. Your frags feed the leaderboard.
           </p>
-          <a className="btn" href={GAME_URL} target="_blank" rel="noopener noreferrer">
-            Launch Client ↗
+          <a className="btn" href={LOBBY_URL} target="_blank" rel="noopener noreferrer">
+            Browse Live Matches ↗
           </a>
         </div>
       </div>
