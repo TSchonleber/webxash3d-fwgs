@@ -1,159 +1,86 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.png" type="image/png">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script type="module" src="/main.ts"></script>
-
     <title>ChainStrike</title>
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@600;800&family=Chakra+Petch:wght@400;600&family=Spline+Sans+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
-        body {
-            background-color: black;
-            margin: 0;
-        }
+        :root{ --lime:#c6ff3d; --lime2:#a6e500; --mag:#ff2e88; --ink:#07090b; --panel:#0d130f; --line:#1d2a1f; --txt:#e7f3e5; --mut:#819382; }
+        *{ box-sizing:border-box; margin:0; padding:0 }
+        body{ background:var(--ink); color:var(--txt); font-family:'Chakra Petch',system-ui,sans-serif; overflow:hidden;
+              background-image:radial-gradient(1100px 600px at 50% -15%, rgba(166,229,0,.14), transparent 60%),
+                               radial-gradient(800px 500px at 90% 110%, rgba(255,46,136,.08), transparent 60%); }
+        .notDraggable{ user-select:none; -webkit-user-drag:none; pointer-events:none }
 
-        .notDraggable {
-            user-select: none;
-            -webkit-user-drag: none;
-            pointer-events: none;
-        }
+        /* full-screen game canvas */
+        #canvas{ position:fixed; inset:0; width:100vw; height:100vh; z-index:1; display:block }
 
-        @keyframes pulsate {
-            0% {
-                transform: translate(-50%, -50%) scale(1);
-                opacity: 1;
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(0.5);
-                opacity: 0.75;
-            }
-        }
+        /* loading logo — gentle pulsate + glow, NOT a shrinking box */
+        @keyframes pulsate{ 0%,100%{ transform:translate(-50%,-50%) scale(1); filter:drop-shadow(0 0 26px rgba(166,229,0,.45)) }
+                            50%{ transform:translate(-50%,-50%) scale(1.035); filter:drop-shadow(0 0 46px rgba(166,229,0,.7)) } }
+        @keyframes pulsate-end{ to{ opacity:0; transform:translate(-50%,-55%) scale(1.06) } }
+        #logo{ position:fixed; top:42%; left:50%; transform:translate(-50%,-50%);
+               width:148px; height:148px; border-radius:30px; z-index:3;
+               animation:pulsate 2.4s ease-in-out infinite; transition:opacity .5s ease }
 
-        @keyframes pulsate-end {
-            0% {
-                transform: translate(-50%, -50%) scale(0.75);
-                opacity: 0.87;
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(1);
-                opacity: 0;
-            }
-        }
+        /* thin loading bar */
+        progress{ position:fixed; top:0; left:0; width:100%; height:3px; border:0; z-index:4;
+                  background:#10180f; transition:opacity .5s ease; appearance:none; -webkit-appearance:none }
+        progress::-webkit-progress-bar{ background:#10180f }
+        progress::-webkit-progress-value{ background:linear-gradient(90deg,var(--mag),var(--lime)) }
+        progress::-moz-progress-bar{ background:var(--lime) }
 
-        img {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            max-width: 100vw;
-            max-height: 100vh;
-            animation-name: pulsate;
-            animation-duration: 0.75s;
-            animation-iteration-count: infinite;
-            animation-direction: alternate;
-            z-index: 2;
-            transition: opacity ease-in-out 0.5s;
-        }
+        /* launch card */
+        #form{ position:fixed; left:50%; top:64%; transform:translateX(-50%); z-index:5;
+               width:min(420px,92vw); background:rgba(13,19,15,.82); backdrop-filter:blur(10px);
+               border:1px solid var(--line); border-radius:18px; padding:22px;
+               display:flex; flex-direction:column; gap:14px;
+               box-shadow:0 24px 60px rgba(0,0,0,.55) }
+        #form .field{ display:flex; flex-direction:column; gap:7px }
+        #form label.lbl{ font-family:'Oxanium'; font-weight:800; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--mut) }
+        #username{ background:#0a0f0a; border:1px solid var(--line); border-radius:11px; padding:13px 14px;
+                   color:var(--txt); font-family:'Spline Sans Mono',monospace; font-size:15px; outline:none; transition:border-color .15s }
+        #username:focus{ border-color:var(--lime) }
+        .btns{ display:flex; gap:10px }
+        #form button{ flex:1; font-family:'Oxanium'; font-weight:800; font-size:15px; letter-spacing:.5px;
+                      border-radius:12px; padding:14px 0; cursor:pointer; border:1px solid transparent; transition:transform .07s, filter .15s }
+        #form button[type=submit]{ color:#0a0f04; background:linear-gradient(180deg,var(--lime),var(--lime2));
+                                   box-shadow:0 6px 0 #4f6a00 }
+        #form button[type=submit]:active{ transform:translateY(3px); box-shadow:0 3px 0 #4f6a00 }
+        #spectate{ background:transparent; border:1px solid var(--line); color:var(--txt) }
+        #spectate:hover{ border-color:var(--lime); color:var(--lime) }
+        .toggle{ display:flex; align-items:center; justify-content:space-between; color:var(--mut); font-size:13px }
+        .toggle input{ width:16px; height:16px; accent-color:var(--lime) }
+        .brandline{ text-align:center; font-family:'Oxanium'; font-weight:800; letter-spacing:3px; font-size:12px; color:var(--mut) }
+        .brandline b{ color:var(--lime) }
 
-        canvas {
-            width: 100vw;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-
-        form {
-            margin: 0;
-            padding: 16px;
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            color: white;
-        }
-
-        form > div {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        #warning {
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 3;
-            text-align: center;
-            color: red;
-            opacity: 0;
-            transition: opacity ease-in-out 0.5s;
-        }
-
-        progress {
-            border-radius: 1px;
-            overflow: hidden;
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
-            height: 8px;
-            pointer-events: none;
-            transition: opacity 0.5s ease-in-out;
-        }
-
-        progress::-webkit-progress-bar {
-            background-color: #eee;
-        }
-
-        progress::-webkit-progress-value {
-            background-color: #f6b265;
-        }
-
-        progress::-moz-progress-bar {
-            background-color: #f6b265;
-        }
-
-
-
-
-        audio {
-            display: none;
-        }
+        #warning{ position:fixed; left:0; right:0; bottom:14px; z-index:6; text-align:center; color:var(--mag);
+                  font-size:13px; opacity:0; transition:opacity .5s ease }
+        audio{ display:none }
     </style>
 </head>
 <body>
 <img id="logo" alt="ChainStrike" class="notDraggable" src="logo.png"/>
 <progress id="progress" value="0" max="1"></progress>
-<canvas id="canvas">
-</canvas>
+<canvas id="canvas"></canvas>
+
 <form id="form">
-    <div>
-        <label>
-            Touch controls
-            <input type="checkbox" id="touchControls">
-        </label>
+    <div class="brandline">CHAIN<b>STRIKE</b></div>
+    <div class="field">
+        <label class="lbl" for="username">Player name</label>
+        <input id="username" type="text" placeholder="enter a callsign" required/>
     </div>
-    <div>
-        <label>
-            Player name
-            <input id="username" type="text" required/>
-        </label>
-        <button type="submit">
-            Start
-        </button>
-        <button type="button" id="spectate">
-            Spectate
-        </button>
+    <label class="toggle">Touch controls <input type="checkbox" id="touchControls"></label>
+    <div class="btns">
+        <button type="submit">▸ PLAY</button>
+        <button type="button" id="spectate">SPECTATE</button>
     </div>
 </form>
-<p id="warning" class="notDraggable">If it's not starting, try to enable microphone and refresh</p>
+<p id="warning" class="notDraggable">If it's not starting, enable your microphone and refresh.</p>
 </body>
 </html>
