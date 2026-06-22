@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "scripts": { "test": "vitest run", "test:watch": "vitest", "gen-fixture": "tsx scripts/gen-fixture.ts" },
+  "scripts": { "test": "vitest run", "test:watch": "vitest", "gen-fixture": "tsx scripts/gen-fixture.ts", "start": "tsx src/api/server.ts" },
   "dependencies": {
     "@hono/node-server": "^1.12.0",
     "@solana/web3.js": "^1.95.0",
