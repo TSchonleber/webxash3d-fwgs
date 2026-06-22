@@ -1,4 +1,5 @@
-import { keccak_256 } from "js-sha3";
+import jsSha3 from "js-sha3";
+const { keccak_256 } = jsSha3;
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 
