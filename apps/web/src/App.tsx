@@ -16,8 +16,8 @@ function TopBar() {
   return (
     <header className="topbar">
       <div className="brand">
-        <span className="glyph">X</span>
-        <span>WEB<b>XASH</b><span className="div">/</span>ARENA</span>
+        <img className="glyph-logo" src="/logo.png" alt="" />
+        <span>Chain<b>Strike</b></span>
       </div>
       <div className="topbar-right">
         <span className="live"><span className="dot" /> Live</span>

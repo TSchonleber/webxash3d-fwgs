@@ -12,10 +12,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
     <div className="login">
       <div className="login-card">
         <div className="brand">
-          <span className="glyph">X</span>
-          <span>WEB<b>XASH</b><span className="div">/</span>ARENA</span>
+          <img className="glyph-logo" src="/logo.png" alt="" />
+        <span>Chain<b>Strike</b></span>
         </div>
-        <h1>Enter the Arena</h1>
+        <h1>Enter ChainStrike</h1>
         <p>
           Log in to track your live ranking, watch the prize pool, and claim your cut
           of the hourly settlement. Email or connect a Solana wallet.

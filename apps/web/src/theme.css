@@ -1,5 +1,5 @@
 /* ============================================================
-   webxash3d — "Terminal Arena"
+   ChainStrike — "Terminal Arena"
    Dark esports broadcast overlay x degen trading terminal.
    Ink black base, acid-lime money signal, hot-magenta live state.
    ============================================================ */
@@ -435,3 +435,5 @@ body::after {
 @media (max-width: 920px) {
   .hero, .grid { grid-template-columns: 1fr; }
 }
+
+.brand .glyph-logo{ width:30px; height:30px; border-radius:7px; object-fit:cover; }
