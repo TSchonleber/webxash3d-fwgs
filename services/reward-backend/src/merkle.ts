@@ -1,4 +1,5 @@
-import { keccak_256 } from "js-sha3";
+import sha3 from "js-sha3";
+const { keccak_256 } = sha3;
 import { PublicKey } from "@solana/web3.js";
 import type { Award } from "./types";
 
