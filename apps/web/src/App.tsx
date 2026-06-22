@@ -8,7 +8,6 @@ import { ClaimPanel } from "./components/ClaimPanel";
 import { useAuth } from "./lib/auth";
 import { useLeaderboard } from "./lib/useLeaderboard";
 import { DEV_BYPASS } from "./lib/config";
-import { demoLeaderboard, DEMO_POOL_LAMPORTS } from "./lib/demo";
 import { shortWallet } from "./lib/format";
 
 function TopBar() {
@@ -36,25 +35,16 @@ function TopBar() {
 }
 
 /** Derive a display pool from total points (1 point ≈ 250 $TOKEN), in lamports. */
-function poolFromBoard(entries: { points: number }[]): string {
-  const totalPoints = entries.reduce((s, e) => s + e.points, 0);
-  const lamports = BigInt(totalPoints) * 250n * 1_000_000_000n;
-  return lamports.toString();
-}
-
 function Dashboard() {
   const { walletAddress } = useAuth();
   const live = useLeaderboard();
 
-  // In dev-bypass with no API running, populate the board so the UI renders fully.
-  const entries = live.entries.length > 0 ? live.entries : DEV_BYPASS ? demoLeaderboard() : [];
-  const pool =
-    live.entries.length === 0 && DEV_BYPASS ? DEMO_POOL_LAMPORTS : poolFromBoard(entries);
+  const entries = live.entries;
 
   return (
     <>
       <TopBar />
-      <PrizePool poolLamports={pool} contenders={entries.length} />
+      <PrizePool contenders={entries.length} />
       <div className="grid">
         <Leaderboard
           entries={entries}

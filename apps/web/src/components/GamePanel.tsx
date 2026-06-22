@@ -51,7 +51,6 @@ export function GamePanel() {
         <canvas id="canvas" ref={canvasRef} />
         {overlayVisible && (
           <div className="game-overlay">
-            <span className="tag">XASH3D-FWGS ENGINE</span>
             {phase === "idle" && (
               <>
                 <h3>Drop Into the Server</h3>
