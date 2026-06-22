@@ -103,7 +103,7 @@
       <div class="sub"><span id="contenders">0</span> contenders this round · top 7 paid in SOL</div>
     </div>
     <div class="card">
-      <div class="lbl">Leaderboard · this hour</div>
+      <div class="lbl">Leaderboard · this round</div>
       <div id="board" style="margin-top:12px"><div class="empty">loading…</div></div>
     </div>
   </section>
@@ -153,7 +153,7 @@
   fetch(`${API}/leaderboard/${hour}`).then(r => r.ok ? r.json() : []).then(board => {
     document.getElementById("contenders").textContent = board.length;
     const el = document.getElementById("board");
-    if (!board.length) { el.innerHTML = '<div class="empty">No matches yet this hour — be the first on the board.</div>'; return; }
+    if (!board.length) { el.innerHTML = '<div class="empty">No matches yet this round — be the first on the board.</div>'; return; }
     el.innerHTML = board.slice(0,7).map(e =>
       `<div class="row r${e.rank}"><span><span class="rank">${e.rank}</span><span class="mono">${short(e.wallet)}</span></span><span class="pts">${e.points}</span></div>`
     ).join("");
