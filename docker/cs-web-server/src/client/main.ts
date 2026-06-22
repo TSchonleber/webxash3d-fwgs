@@ -104,6 +104,14 @@ async function main() {
     x.em.FS.writeFile(`/rodir/${config.game_dir}/extras.pk3`, new Uint8Array(extras))
     x.em.FS.chdir('/rodir')
 
+    const logo = document.getElementById('logo')
+    if (logo) {
+        logo.style.animationName = 'pulsate-end'
+        logo.style.animationFillMode = 'forwards'
+        logo.style.animationIterationCount = '1'
+        logo.style.animationDirection = 'normal'
+    }
+
     const username = await usernamePromise
     x.main()
     if (touchControls.checked) {
