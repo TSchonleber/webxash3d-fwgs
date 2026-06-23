@@ -142,14 +142,19 @@ func signalPeerConnections() { // nolint
 
 	attemptSync := func() (tryAgain bool) {
 		for i := range peerConnections {
-			if peerConnections[i].signalsCount <= 0 {
-				continue
-			}
-
+			// Reap closed peers FIRST, regardless of signalsCount. Established
+			// peers have signalsCount==0 (it counts down once signaling finishes),
+			// so gating the closed-check behind signalsCount>0 meant a client that
+			// connected and later disconnected was never removed — leaking into the
+			// global list and inflating the /players count into the hundreds.
 			if peerConnections[i].peerConnection.ConnectionState() == webrtc.PeerConnectionStateClosed {
 				peerConnections = append(peerConnections[:i], peerConnections[i+1:]...)
 
 				return true // We modified the slice, start from the beginning
+			}
+
+			if peerConnections[i].signalsCount <= 0 {
+				continue
 			}
 
 			// map of sender we already are seanding, so we don't double send
@@ -220,6 +225,27 @@ func signalPeerConnections() { // nolint
 			break
 		}
 	}
+}
+
+// reapClosedPeers drops peer connections that have closed. OnConnectionStateChange
+// reaps most of them on disconnect; this periodic sweep catches any that slip
+// through (e.g. a half-open socket) so the global list — and the /players count —
+// never accumulates dead peers.
+func reapClosedPeers() {
+	listLock.Lock()
+	defer listLock.Unlock()
+	kept := peerConnections[:0]
+	for _, pc := range peerConnections {
+		if pc.peerConnection.ConnectionState() == webrtc.PeerConnectionStateClosed {
+			continue
+		}
+		kept = append(kept, pc)
+	}
+	// nil the freed tail so the removed peers can be garbage-collected
+	for i := len(kept); i < len(peerConnections); i++ {
+		peerConnections[i] = nil
+	}
+	peerConnections = kept
 }
 
 // dispatchKeyFrame sends a keyframe to all PeerConnections, used everytime a new user joins the call.
@@ -378,6 +404,9 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) { // nolint
 				log.Errorf("Failed to close PeerConnection: %v", err)
 			}
 		case webrtc.PeerConnectionStateClosed:
+			// Unblock the websocket read goroutine so the handler returns and its
+			// defers (pool slot, data channels) run — otherwise it leaks too.
+			_ = c.Close()
 			signalPeerConnections()
 		default:
 		}
@@ -696,6 +725,13 @@ func runSFU() {
 	go func() {
 		for range time.NewTicker(time.Second * 3).C {
 			dispatchKeyFrame()
+		}
+	}()
+
+	// reap dead peer connections every 5s so /players reflects only live clients
+	go func() {
+		for range time.NewTicker(time.Second * 5).C {
+			reapClosedPeers()
 		}
 	}()
 
