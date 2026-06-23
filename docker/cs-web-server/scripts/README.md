@@ -1,20 +1,18 @@
 # add_weapon_spawns.py
 
-Turns a GoldSrc map into an FFA DM arena by editing the BSP **entity lump only**
-(no recompile). Crucially, it samples the map's real **floor geometry** rather
-than anchoring to the existing spawns (which on de_train are bunched in the two
-team-spawn zones), so spawns and weapons spread across the whole level.
+Edits a GoldSrc BSP (v30) **entity lump only** (no recompile) to make an FFA DM
+arena with well-spread spawns and weapon pickups.
 
-How:
-1. Parse PLANES/VERTEXES/EDGES/SURFEDGES/FACES; keep faces whose normal points
-   up (floor), above a min area, within a ground+platform Z band.
-2. Bucket floor-face centroids into a 384-unit XY grid → even map-wide coverage.
-3. Place ~2 `info_player_deathmatch` spawns per cell (jittered) and ~40
-   `armoury_entity` weapons across distinct cells (AK/M4/AWP/Scout/P90/M3/AUG/
-   SG552/M249/MP5/XM1014/MAC10 + HE/kevlar).
+Key fix vs naive approaches: it samples the map's real **floor faces** (upward
+normal, sizable area, ground Z band), then does a **greedy minimum-distance
+(Poisson-disk) pick** so no two spawns are closer than ~430 units. That stops
+players respawning on top of each other / right next to whoever just killed them.
+Both `info_player_start` AND `info_player_deathmatch` are placed at each location
+so FFA uses all spawns regardless of nominal team. Weapons (armoury_entity) are
+spread the same way.
 
-Map CRC excludes the entity lump → edited server map stays consistent with the
-stock client map (no valve.zip re-pack).
+Map CRC excludes the entity lump, so the edited server map stays consistent with
+the stock client map (no valve.zip re-pack).
 
 Pair with (configs/cstrike/server-dm.cfg):
   mp_freeforall 1 ; mp_randomspawn 1

@@ -1,72 +1,63 @@
-import struct, re, random
-SRC="/tmp/de_train.bsp"; OUT="/tmp/de_train_dm.bsp"; random.seed(11)
-d=bytearray(open(SRC,"rb").read())
-assert struct.unpack_from("<i",d,0)[0]==30
+import struct, re, random, math
+SRC="/tmp/de_train.bsp"; OUT="/tmp/de_train_dm.bsp"; random.seed(99)
+d=bytearray(open(SRC,"rb").read()); assert struct.unpack_from("<i",d,0)[0]==30
 dirs=[list(struct.unpack_from("<ii",d,4+i*8)) for i in range(15)]
-def lump(i): off,ln=dirs[i]; return bytes(d[off:off+ln])
-lumps=[lump(i) for i in range(15)]
-
+lumps=[bytes(d[o:o+l]) for o,l in dirs]
 planes=[struct.unpack_from("<ffffi",lumps[1],j*20) for j in range(len(lumps[1])//20)]
 verts =[struct.unpack_from("<fff",lumps[3],j*12) for j in range(len(lumps[3])//12)]
 edges =[struct.unpack_from("<HH",lumps[12],j*4) for j in range(len(lumps[12])//4)]
 sedges=[struct.unpack_from("<i",lumps[13],j*4)[0] for j in range(len(lumps[13])//4)]
-nface=len(lumps[7])//20
-
-# spawn Z reference
 ents=lumps[0].split(b"\x00")[0].decode("latin-1")
-spawn_zs=[int(m.group(3)) for m in re.finditer(r'"origin"\s*"(-?\d+)\s+(-?\d+)\s+(-?\d+)"',ents) if True]
-# (rough) use the bulk of origins as ground reference
-spawn_zs=sorted(spawn_zs); zref=spawn_zs[len(spawn_zs)//2] if spawn_zs else -270
+zs=[int(m[2]) for m in re.findall(r'"origin"\s*"(-?\d+)\s+(-?\d+)\s+(-?\d+)"',ents)]
+zref=sorted(zs)[len(zs)//2] if zs else -270
 
 floors=[]
-for f in range(nface):
-    planenum,side,firstedge,numedges,texinfo,s0,s1,s2,s3,lightofs=struct.unpack_from("<HhihHBBBBi",lumps[7],f*20)
-    nx,ny,nz,dist,ptype=planes[planenum]
-    if side: nz=-nz
-    if nz<0.7: continue  # not a floor
-    vs=[]
-    for e in range(numedges):
-        se=sedges[firstedge+e]
-        v= edges[se][0] if se>=0 else edges[-se][1]
-        vs.append(verts[v])
+for f in range(len(lumps[7])//20):
+    pn,side,fe,ne,ti,a,b,c,e2,lo=struct.unpack_from("<HhihHBBBBi",lumps[7],f*20)
+    nz=planes[pn][2]*(-1 if side else 1)
+    if nz<0.7: continue
+    vs=[verts[edges[se][0] if se>=0 else edges[-se][1]] for se in (sedges[fe+k] for k in range(ne))]
     if len(vs)<3: continue
-    cx=sum(v[0] for v in vs)/len(vs); cy=sum(v[1] for v in vs)/len(vs); cz=sum(v[2] for v in vs)/len(vs)
-    # rough area filter: bounding box of the face
     xs=[v[0] for v in vs]; ys=[v[1] for v in vs]
     area=(max(xs)-min(xs))*(max(ys)-min(ys))
-    if area<2600: continue  # skip tiny faces
-    if cz < zref-80 or cz > zref+520: continue  # ground + accessible platforms
+    cx,cy,cz=sum(xs)/len(vs),sum(ys)/len(vs),sum(v[2] for v in vs)/len(vs)
+    if area<6000: continue                 # only sizable open floor
+    if cz<zref-80 or cz>zref+460: continue
     floors.append((cx,cy,cz,area))
-print(f"floor faces (filtered): {len(floors)}")
+floors.sort(key=lambda t:-t[3])            # biggest faces first
+print("candidate floors:",len(floors))
 
-# spread: bucket by 384-unit XY grid, keep largest face per cell
-cells={}
+# greedy min-distance pick -> guaranteed spread, no clusters
+MIND=430
+picked=[]
 for (x,y,z,a) in floors:
-    key=(int(x//384),int(y//384))
-    if key not in cells or a>cells[key][3]: cells[key]=(x,y,z,a)
-pts=[(int(x),int(y),int(z)) for (x,y,z,a) in cells.values()]
-random.shuffle(pts)
-print(f"spread cells: {len(pts)}")
+    if all((x-px)**2+(y-py)**2 >= MIND*MIND for (px,py,pz) in picked):
+        picked.append((x,y,z))
+print(f"spread spawns: {len(picked)} (each >= {MIND}u apart)")
+# min pairwise check
+mn=1e9
+for i in range(len(picked)):
+    for j in range(i+1,len(picked)):
+        dd=math.dist(picked[i][:2],picked[j][:2]); mn=min(mn,dd)
+print(f"actual min spacing: {mn:.0f}u | X {min(p[0] for p in picked):.0f}..{max(p[0] for p in picked):.0f} | Y {min(p[1] for p in picked):.0f}..{max(p[1] for p in picked):.0f}")
 
 new=[]
-# spawns at MOST cells (whole-map spread), 2 per cell
-ns=0
-for (x,y,z) in pts:
-    for _ in range(2):
-        new.append('{\n"origin" "%d %d %d"\n"angles" "0 %d 0"\n"classname" "info_player_deathmatch"\n}'%(x+random.randint(-48,48),y+random.randint(-48,48),z+24,random.randint(0,359))); ns+=1
-# weapons spread across distinct cells
-WEAP=[4,6,10,8,2,11,7,5,13,0,15,16,12,3]
-nw=0
-wcells=pts[:] ; random.shuffle(wcells)
-for i,(x,y,z) in enumerate(wcells[:40]):
-    new.append('{\n"origin" "%d %d %d"\n"count" "50"\n"item" "%d"\n"classname" "armoury_entity"\n}'%(x,y,z+20,WEAP[i%len(WEAP)])); nw+=1
-print(f"added {ns} spawns, {nw} weapons across {len(pts)} map cells")
+for (x,y,z) in picked:
+    for cls in ("info_player_start","info_player_deathmatch"):   # both -> FFA uses all
+        new.append('{\n"origin" "%d %d %d"\n"angles" "0 %d 0"\n"classname" "%s"\n}'%(int(x),int(y),int(z)+26,random.randint(0,359),cls))
+# weapons: spread similarly (min 480u apart), varied
+WEAP=[4,6,10,8,2,11,7,5,13,0,15,16,12,3]; wpick=[]; 
+for (x,y,z,a) in floors:
+    if all((x-px)**2+(y-py)**2>=480*480 for (px,py,pz) in wpick): wpick.append((x,y,z))
+    if len(wpick)>=40: break
+for i,(x,y,z) in enumerate(wpick):
+    new.append('{\n"origin" "%d %d %d"\n"count" "50"\n"item" "%d"\n"classname" "armoury_entity"\n}'%(int(x),int(y),int(z)+22,WEAP[i%len(WEAP)]))
+print(f"weapons: {len(wpick)}")
 
-new_text=ents.rstrip()+"\n"+"\n".join(new)+"\n"
-lumps[0]=new_text.encode("latin-1")+b"\x00"
+lumps[0]=(ents.rstrip()+"\n"+"\n".join(new)+"\n").encode("latin-1")+b"\x00"
 out=bytearray(4+15*8); struct.pack_into("<i",out,0,30)
 for i in range(15):
     off=len(out); out+=lumps[i]
     while len(out)%4: out+=b"\x00"
     struct.pack_into("<ii",out,4+i*8,off,len(lumps[i]))
-open(OUT,"wb").write(out); print(f"wrote {OUT}: {len(out)} bytes")
+open(OUT,"wb").write(out); print("wrote",len(out),"bytes")
