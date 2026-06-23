@@ -163,6 +163,16 @@
 .ca-link { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); text-decoration: none; white-space: nowrap; }
 .ca-link:hover { color: var(--lime); }
 
+/* ---------- recent payouts (landing transparency) ---------- */
+.payouts { padding: var(--s5) 0; border-top: 1px solid var(--line); }
+.payouts-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s3); }
+.payouts-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; font-size: 13px; }
+.payouts-list li { display: flex; align-items: center; gap: var(--s3); color: var(--text-dim); }
+.po-amt { color: var(--lime); min-width: 92px; }
+.po-to { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.po-tx { color: var(--text-faint); text-decoration: none; white-space: nowrap; }
+.po-tx:hover { color: var(--lime); }
+
 .home-foot {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--s3);
   padding: var(--s6) 0; border-top: 1px solid var(--line);

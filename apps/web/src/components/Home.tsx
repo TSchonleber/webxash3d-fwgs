@@ -24,6 +24,28 @@ function usePool() {
   return sol;
 }
 
+/** Recent on-chain payouts from the treasury (server-cached, polled). */
+function usePayouts() {
+  const [payouts, setPayouts] = useState<{ sig: string; to: string; lamports: number; blockTime: number }[]>([]);
+  useEffect(() => {
+    let on = true;
+    const tick = () =>
+      fetch(`${API_BASE}/payouts`)
+        .then((r) => r.json())
+        .then((d) => on && setPayouts(Array.isArray(d) ? d : []))
+        .catch(() => {});
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => {
+      on = false;
+      clearInterval(id);
+    };
+  }, []);
+  return payouts;
+}
+
+const TREASURY = "6omjnxK1H4X3JaJZmwr8jzyEUY5jwgaDsP4mQcxeDJjk";
+
 const STEPS = [
   { k: "DROP IN", body: "Pick a callsign and load straight into the live free-for-all. No install, no team menu — you spawn with a rifle." },
   { k: "RACK FRAGS", body: "Every kill scores. The board ranks purely by frags and wipes every 15 minutes — each round is a clean slate." },
@@ -35,6 +57,7 @@ export function Home() {
   const pool = usePool();
   const live = useLeaderboard();
   const top = live.entries.slice(0, 8);
+  const payouts = usePayouts();
   const [caCopied, setCaCopied] = useState(false);
   const copyCA = () => {
     navigator.clipboard?.writeText(TOKEN_MINT);
@@ -123,6 +146,25 @@ export function Home() {
           </div>
         ))}
       </section>
+
+      {/* RECENT PAYOUTS — live on-chain transparency */}
+      {payouts.length > 0 && (
+        <section className="payouts">
+          <div className="payouts-head">
+            <span className="ca-label">RECENT PAYOUTS · ON-CHAIN</span>
+            <a className="ca-link" href={`https://solscan.io/account/${TREASURY}`} target="_blank" rel="noreferrer">Treasury ↗</a>
+          </div>
+          <ul className="payouts-list mono">
+            {payouts.slice(0, 10).map((p) => (
+              <li key={p.sig}>
+                <span className="po-amt">{(p.lamports / 1e9).toFixed(3)} SOL</span>
+                <span className="po-to">→ {shortWallet(p.to)}</span>
+                <a className="po-tx" href={`https://solscan.io/tx/${p.sig}`} target="_blank" rel="noreferrer">tx ↗</a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <footer className="home-foot">
         <span>ChainStrike</span>

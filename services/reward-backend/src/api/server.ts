@@ -30,6 +30,34 @@ const DB_PATH = process.env.LEADERBOARD_DB_PATH ?? "";
 const store = DB_PATH ? new SqliteMatchStore(DB_PATH) : new MatchStore();
 console.log(DB_PATH ? `leaderboard persisted to ${DB_PATH}` : "leaderboard in-memory (set LEADERBOARD_DB_PATH to persist)");
 
+// Read the treasury's recent outgoing SOL transfers (the payouts) straight from
+// chain so the transparency page reflects what actually happened on-chain.
+async function readPayouts() {
+  const sigs = await conn.getSignaturesForAddress(POOL, { limit: 15 });
+  const treasury = POOL.toBase58();
+  const out: { sig: string; to: string; lamports: number; blockTime: number }[] = [];
+  // Fetch one at a time — the free RPC plan forbids batch requests (which the
+  // plural getParsedTransactions uses). The /payouts route caches this for 60s.
+  for (const s of sigs) {
+    let tx;
+    try {
+      tx = await conn.getParsedTransaction(s.signature, { maxSupportedTransactionVersion: 0 });
+    } catch {
+      continue; // skip a tx the RPC hiccups on; keep the rest
+    }
+    if (!tx || tx.meta?.err) continue;
+    for (const ix of tx.transaction.message.instructions as {
+      parsed?: { type?: string; info?: { source?: string; destination?: string; lamports?: number } };
+    }[]) {
+      const p = ix.parsed;
+      if (p?.type === "transfer" && p.info?.source === treasury && p.info?.destination && p.info.destination !== treasury) {
+        out.push({ sig: s.signature, to: p.info.destination, lamports: Number(p.info.lamports ?? 0), blockTime: s.blockTime ?? 0 });
+      }
+    }
+  }
+  return out;
+}
+
 const app = createApp({
   allowlist: ALLOWLIST,
   minMatches: Number(process.env.MIN_MATCHES || 1),
@@ -37,6 +65,7 @@ const app = createApp({
   budgetBps: Number(process.env.BUDGET_BPS || 1000),
   isEligible: (w) => (MINT ? isHoldEligible(reader, w, MINT, MIN_TOKENS) : Promise.resolve(true)),
   poolReader: async () => ({ vaultAddress: POOL.toBase58(), lamports: await conn.getBalance(POOL) }),
+  payoutsReader: readPayouts,
   store,
 });
 

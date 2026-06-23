@@ -15,6 +15,7 @@ export interface AppDeps {
   store?: MatchStoreApi;
   adminToken?: string;
   poolReader?: () => Promise<{ vaultAddress: string; lamports: number }>;
+  payoutsReader?: () => Promise<{ sig: string; to: string; lamports: number; blockTime: number }[]>;
 }
 
 export function createApp(deps: AppDeps) {
@@ -34,6 +35,21 @@ export function createApp(deps: AppDeps) {
       return c.json({ vaultAddress, lamports, sol: lamports / 1e9, denom: "SOL" });
     } catch {
       return c.json({ vaultAddress: null, lamports: 0, sol: 0, denom: "SOL" });
+    }
+  });
+
+  // Recent on-chain payouts from the treasury, for a public transparency page.
+  // Cached 60s so /payouts doesn't hammer the RPC on every visitor.
+  let payoutsCache: { ts: number; data: unknown } = { ts: 0, data: [] };
+  app.get("/payouts", async (c) => {
+    if (!deps.payoutsReader) return c.json([]);
+    if (Date.now() - payoutsCache.ts < 60_000) return c.json(payoutsCache.data);
+    try {
+      const data = await deps.payoutsReader();
+      payoutsCache = { ts: Date.now(), data };
+      return c.json(data);
+    } catch {
+      return c.json(payoutsCache.data);
     }
   });
 

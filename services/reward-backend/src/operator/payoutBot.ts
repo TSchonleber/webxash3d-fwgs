@@ -104,32 +104,31 @@ async function payPeriod(hour: number): Promise<void> {
 
   const w = WEIGHTS.slice(0, winners.length);
   const wSum = w.reduce((a, b) => a + b, 0);
-  const results: unknown[] = [];
 
-  for (let i = 0; i < winners.length; i++) {
-    const lamports = Math.floor((pot * w[i]) / wSum);
-    if (lamports <= 0) continue;
-    try {
-      const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
-      const tx = new Transaction({
-        feePayer: treasury.publicKey,
-        blockhash,
-        lastValidBlockHeight,
-      }).add(
+  // Send all payouts in PARALLEL off a single blockhash so the whole round
+  // disperses in ~1-2s instead of one-tx-at-a-time. Each settles independently.
+  const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
+  const results = await Promise.all(
+    winners.map(async (winner, i) => {
+      const lamports = Math.floor((pot * w[i]) / wSum);
+      if (lamports <= 0) return { rank: i + 1, wallet: winner.wallet, sol: 0 };
+      const tx = new Transaction({ feePayer: treasury.publicKey, blockhash, lastValidBlockHeight }).add(
         SystemProgram.transfer({
           fromPubkey: treasury.publicKey,
-          toPubkey: new PublicKey(winners[i].wallet),
+          toPubkey: new PublicKey(winner.wallet),
           lamports,
         }),
       );
-      const sig = await sendAndConfirmTransaction(conn, tx, [treasury], { commitment: "confirmed" });
-      results.push({ rank: i + 1, wallet: winners[i].wallet, sol: lamports / LAMPORTS_PER_SOL, sig });
-      console.log(`  #${i + 1} ${winners[i].wallet} <- ${lamports / LAMPORTS_PER_SOL} SOL  ${sig}`);
-    } catch (e) {
-      console.error(`  #${i + 1} ${winners[i].wallet} FAILED: ${e instanceof Error ? e.message : e}`);
-      results.push({ rank: i + 1, wallet: winners[i].wallet, error: String(e) });
-    }
-  }
+      try {
+        const sig = await sendAndConfirmTransaction(conn, tx, [treasury], { commitment: "confirmed" });
+        console.log(`  #${i + 1} ${winner.wallet} <- ${lamports / LAMPORTS_PER_SOL} SOL  ${sig}`);
+        return { rank: i + 1, wallet: winner.wallet, sol: lamports / LAMPORTS_PER_SOL, sig };
+      } catch (e) {
+        console.error(`  #${i + 1} ${winner.wallet} FAILED: ${e instanceof Error ? e.message : e}`);
+        return { rank: i + 1, wallet: winner.wallet, error: String(e) };
+      }
+    }),
+  );
 
   paid[hour] = { winners: results, ts: Date.now() };
   savePaid(paid);
