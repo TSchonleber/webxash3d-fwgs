@@ -109,6 +109,10 @@ async function fetchWithProgress(url: string) {
     return blob.arrayBuffer()
 }
 
+// The engine instance, exposed so the top-level control poll can wire to it
+// regardless of where main() is in its async flow.
+let engine: { Cmd_ExecuteString: (cmd: string) => void } | null = null
+
 // Lightweight DOM controls (move pad + look + fire). Inputs go through the engine's
 // +/- button commands — no textures to load (no OOM), transport untouched. Uses
 // Pointer Events so it works with touch (phone) AND mouse (desktop demo).
@@ -155,18 +159,22 @@ function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }): bo
     fire.addEventListener('pointerup', fireUp); fire.addEventListener('pointercancel', fireUp); fire.addEventListener('pointerleave', fireUp)
 
     // ---- look/aim (right-side drag): joystick-style keyboard-look ----
-    // The model that worked — hold the drag off-center to keep turning that way,
-    // release to stop. Just less sensitive than before (cl_yawspeed 130 vs 280).
-    x.Cmd_ExecuteString('cl_yawspeed 130')
-    x.Cmd_ExecuteString('cl_pitchspeed 110')
+    // Hold the drag off-center to keep turning that way; release to stop.
+    // NOTE: never call Cmd_ExecuteString at wire time — if the engine isn't fully
+    // ready it throws and aborts the rest of the control wiring. Set turn speed
+    // lazily on the first drag instead.
     const clearLook = () => ['left', 'right', 'lookup', 'lookdown'].forEach((c) => set(c, false))
-    let lookId: number | null = null, lsx = 0, lsy = 0
+    let lookId: number | null = null, lsx = 0, lsy = 0, lookSpeedSet = false
     const lookMove = (cx: number, cy: number) => {
         const dx = cx - lsx, dy = cy - lsy, dz = 16
         set('right', dx > dz); set('left', dx < -dz)
         set('lookup', dy < -dz); set('lookdown', dy > dz)
     }
-    look.addEventListener('pointerdown', (e) => { e.preventDefault(); lookId = e.pointerId; look.setPointerCapture(e.pointerId); lsx = e.clientX; lsy = e.clientY })
+    look.addEventListener('pointerdown', (e) => {
+        e.preventDefault()
+        if (!lookSpeedSet) { x.Cmd_ExecuteString('cl_yawspeed 130'); x.Cmd_ExecuteString('cl_pitchspeed 110'); lookSpeedSet = true }
+        lookId = e.pointerId; look.setPointerCapture(e.pointerId); lsx = e.clientX; lsy = e.clientY
+    })
     look.addEventListener('pointermove', (e) => { if (e.pointerId === lookId) { e.preventDefault(); lookMove(e.clientX, e.clientY) } })
     const lookEnd = (e: PointerEvent) => { if (e.pointerId === lookId) { lookId = null; clearLook() } }
     look.addEventListener('pointerup', lookEnd); look.addEventListener('pointercancel', lookEnd)
@@ -198,8 +206,47 @@ function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }): bo
         e.preventDefault()
         muted = !muted
         x.Cmd_ExecuteString('volume ' + (muted ? '0' : '1'))
-        snd.textContent = muted ? 'MUTED' : 'SND'
+        snd.textContent = muted ? '🔇' : '🔊'
     })
+
+}
+
+// Chat — works on all devices. Mobile opens it via the CHAT button; desktop via
+// the Y or Enter key (CS convention). Messages go through the engine's `say`.
+let chatWired = false
+function setupChat(x: { Cmd_ExecuteString: (cmd: string) => void }): boolean {
+    const chatbar = document.getElementById('chatbar')
+    const chatinput = document.getElementById('chatinput') as HTMLInputElement | null
+    if (!chatbar || !chatinput) return false
+    if (chatWired) return true
+    chatWired = true
+    const open = () => { chatbar.classList.add('show'); chatinput.focus() }
+    const close = () => { chatbar.classList.remove('show'); chatinput.blur() }
+    const send = () => {
+        // strip quotes/semicolons/newlines so a message can't break out of the
+        // `say "..."` command into arbitrary console commands.
+        const t = chatinput.value.replace(/["';\n\r]/g, '').trim().slice(0, 120)
+        if (t) x.Cmd_ExecuteString(`say "${t}"`)
+        chatinput.value = ''
+        close()
+    }
+    document.getElementById('mchat')?.addEventListener('pointerdown', (e) => { e.preventDefault(); open() })
+    document.getElementById('chatsend')?.addEventListener('pointerdown', (e) => { e.preventDefault(); send() })
+    // keep typed keys out of the game engine while the chat field is focused
+    for (const ev of ['keydown', 'keyup', 'keypress']) chatinput.addEventListener(ev, (e) => e.stopPropagation())
+    chatinput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); send() }
+        else if (e.key === 'Escape') close()
+    })
+    // Desktop: open chat with Y / Enter when not already typing (capture so the
+    // engine doesn't also act on the key).
+    window.addEventListener('keydown', (e) => {
+        if (chatbar.classList.contains('show')) return
+        const tag = (document.activeElement?.tagName ?? '').toLowerCase()
+        if (tag === 'input' || tag === 'textarea') return
+        if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); open() }
+    }, true)
+    return true
 }
 
 async function main() {
@@ -280,19 +327,13 @@ async function main() {
 
     const username = await usernamePromise
     x.main()
+    engine = x   // engine is initialized — only now is it safe for the poll to send console commands
     // Mobile gets the lightweight DOM control overlay — the engine's touch_enable
     // loads a button texture set that OOMs low-memory phones. Desktop = kbd+mouse.
+    // Mobile controls are wired by the top-level poll (set up from page load).
+    // Desktop may opt into the engine's own touch UI via the checkbox.
     const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints ?? 0) > 0
-    if (isTouchDevice) {
-        // Retry until the overlay elements are present and wired — the engine can
-        // touch the DOM during init, so a single attempt can land too early.
-        if (!setupTouchControls(x)) {
-            const t = setInterval(() => { if (setupTouchControls(x)) clearInterval(t) }, 400)
-            setTimeout(() => clearInterval(t), 10000)
-        }
-    } else if (touchControls.checked) {
-        x.Cmd_ExecuteString('touch_enable 1')
-    }
+    if (!isTouchDevice && touchControls.checked) x.Cmd_ExecuteString('touch_enable 1')
 
     // Audio: ensure not muted, and resume the engine's own SDL audio context on a
     // user gesture (the generic AudioContext patch may not catch the engine's one).
@@ -405,3 +446,19 @@ if (spectateMode) {
 }
 
 main()
+
+// Robust mobile-control bootstrap: independent of main()'s async timing and of the
+// engine touching the DOM during init. Every tick: keep the overlay shown, and wire
+// the controls once the engine + elements are both ready. Cheap; runs from page load.
+{
+    // Visibility is handled by CSS (@media pointer:coarse). This only wires the
+    // handlers — re-evaluating touch each tick so it still works if the pointer
+    // type is detected late. Cheap; runs from page load.
+    let wiredTouch = false, wiredChat = false
+    setInterval(() => {
+        if (!engine) return
+        const isTouch = window.matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints ?? 0) > 0
+        if (isTouch && !wiredTouch && setupTouchControls(engine)) wiredTouch = true
+        if (!wiredChat && setupChat(engine)) wiredChat = true   // chat on all devices
+    }, 600)
+}

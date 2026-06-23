@@ -81,7 +81,9 @@
         @media (orientation:portrait) and (pointer:coarse){ #rotate:not([hidden]){ display:flex } }
 
         /* lightweight DOM touch controls (no engine textures -> no OOM) */
-        #mctl{ position:fixed; inset:0; z-index:7; pointer-events:none }
+        /* Shown purely via media query — never depends on JS timing. */
+        #mctl{ position:fixed; inset:0; z-index:7; pointer-events:none; display:none }
+        @media (pointer: coarse) { #mctl{ display:block } }
         #mctl > *{ pointer-events:auto; touch-action:none; -webkit-user-select:none; user-select:none }
         /* right-side drag area for look/aim (transparent; sits under the fire button) */
         #mlook{ position:fixed; right:0; top:0; bottom:0; width:56% }
@@ -89,7 +91,7 @@
                background:rgba(255,255,255,.05); border:1px solid rgba(198,255,61,.45) }
         #mnub{ position:absolute; left:50%; top:50%; width:56px; height:56px; margin:-28px 0 0 -28px; border-radius:50%;
                background:rgba(198,255,61,.5); border:1px solid rgba(198,255,61,.8) }
-        #mfire{ position:fixed; right:24px; bottom:30px; width:100px; height:100px; border-radius:50%;
+        #mfire{ position:fixed; right:16px; bottom:18px; width:90px; height:90px; border-radius:50%;
                 display:flex; align-items:center; justify-content:center;
                 background:rgba(255,46,136,.16); border:2px solid rgba(255,46,136,.75); color:var(--txt);
                 font-family:'Oxanium',sans-serif; font-weight:800; font-size:15px; letter-spacing:1px }
@@ -100,20 +102,32 @@
                 border-radius:10px; font-family:'Oxanium',sans-serif; font-weight:800; font-size:12px; letter-spacing:1px }
         #mquit:active{ background:rgba(255,46,136,.24) }
         /* round game buttons (jump / crouch / reload) */
-        .gbtn{ position:fixed; width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+        .gbtn{ position:fixed; width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center;
                background:rgba(255,255,255,.06); border:2px solid rgba(198,255,61,.5); color:var(--txt);
-               font-family:'Oxanium',sans-serif; font-weight:800; font-size:12px; letter-spacing:.5px }
+               font-family:'Oxanium',sans-serif; font-weight:800; font-size:10px; letter-spacing:.3px }
         .gbtn:active{ background:rgba(198,255,61,.22) }
-        #mjump{ right:140px; bottom:110px }
-        #mreload{ right:250px; bottom:110px }
-        #mcrouch{ right:140px; bottom:28px }
-        #malt{ right:250px; bottom:28px }
+        /* compact cluster hugging the bottom-right corner, left of FIRE */
+        #mjump{ right:116px; bottom:72px }
+        #mreload{ right:178px; bottom:72px }
+        #mcrouch{ right:116px; bottom:10px }
+        #malt{ right:178px; bottom:10px }
+        /* chat bar (mobile: opened by the CHAT button; desktop uses native Y key) */
+        #chatbar{ position:fixed; left:50%; bottom:96px; transform:translateX(-50%); z-index:11; display:none; gap:8px;
+                  width:min(560px,92vw); background:rgba(7,9,11,.94); border:1px solid var(--line); border-radius:12px; padding:10px;
+                  box-shadow:0 18px 50px rgba(0,0,0,.6) }
+        #chatbar.show{ display:flex }
+        #chatinput{ flex:1; min-width:0; background:#0a0f0a; border:1px solid var(--line); border-radius:8px; padding:12px 13px;
+                    color:var(--txt); font-family:'Spline Sans Mono',monospace; font-size:15px; outline:none }
+        #chatinput:focus{ border-color:var(--lime) }
+        #chatsend{ flex:0 0 auto; padding:0 18px; border-radius:8px; border:1px solid var(--lime); background:var(--lime); color:var(--ink);
+                   font-family:'Oxanium',sans-serif; font-weight:800; font-size:13px; letter-spacing:1px }
         /* tap action buttons (top-right) */
         #mtop{ position:fixed; top:12px; right:12px; display:flex; gap:10px }
         .mbtn{ min-width:64px; height:40px; display:flex; align-items:center; justify-content:center;
                background:rgba(255,255,255,.06); border:1px solid rgba(198,255,61,.45); color:var(--txt);
                border-radius:10px; font-family:'Oxanium',sans-serif; font-weight:800; font-size:12px; letter-spacing:1px }
         .mbtn:active{ background:rgba(198,255,61,.22) }
+        #msound{ font-size:18px; min-width:48px; padding:0 10px }
     </style>
 </head>
 <body>
@@ -145,12 +159,13 @@
     <div class="rs">ChainStrike plays best in landscape</div>
     <div class="rtap">▸ Tap to play anyway</div>
 </div>
-<div id="mctl" hidden>
+<div id="mctl">
     <div id="mlook"></div>
     <div id="mpad"><div id="mnub"></div></div>
     <div id="mquit">‹ LOBBY</div>
     <div id="mtop">
-        <div id="msound" class="mbtn">SND</div>
+        <div id="mchat" class="mbtn">CHAT</div>
+        <div id="msound" class="mbtn">🔊</div>
         <div id="mswap" class="mbtn">SWAP</div>
         <div id="mdrop" class="mbtn">DROP</div>
     </div>
@@ -159,6 +174,10 @@
     <div id="mjump" class="gbtn">JUMP</div>
     <div id="mcrouch" class="gbtn">DUCK</div>
     <div id="malt" class="gbtn">ALT</div>
+</div>
+<div id="chatbar">
+    <input id="chatinput" type="text" maxlength="120" autocomplete="off" placeholder="say something — enter to send"/>
+    <button id="chatsend" type="button">SEND</button>
 </div>
 </body>
 </html>
