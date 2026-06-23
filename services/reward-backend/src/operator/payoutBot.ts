@@ -93,14 +93,18 @@ async function payPeriod(hour: number): Promise<void> {
   const treasury = loadTreasury();
   const conn = new Connection(RPC, "confirmed");
   const bal = await conn.getBalance(treasury.publicKey);
-  // Distribute the entire treasury (minus a fee buffer) to the round's winners.
-  // PER_ROUND_SOL is an optional cap: > 0 caps the pot; 0 pays out the full pool.
+  // Available pot = treasury minus a fee buffer (PER_ROUND_SOL > 0 caps it).
   const fullPot = Math.max(0, bal - Math.floor(FEE_BUFFER_SOL * LAMPORTS_PER_SOL));
-  const pot = PER_ROUND_SOL > 0 ? Math.min(Math.floor(PER_ROUND_SOL * LAMPORTS_PER_SOL), fullPot) : fullPot;
+  const cappedPot = PER_ROUND_SOL > 0 ? Math.min(Math.floor(PER_ROUND_SOL * LAMPORTS_PER_SOL), fullPot) : fullPot;
+  // Scale by how full the top-7 is: the FULL pot only goes out with 7 winners.
+  // Fewer winners get a proportional slice (winners/7) so a 2-3 player round
+  // doesn't drain the whole pool — the remainder stays in the treasury.
+  const pot = Math.floor((cappedPot * Math.min(winners.length, TOP_N)) / TOP_N);
   if (pot <= 0) {
     console.log(`period ${hour}: treasury too low (${bal / LAMPORTS_PER_SOL} SOL) — fund it`);
     return;
   }
+  console.log(`period ${hour}: ${winners.length}/${TOP_N} winners -> pot ${(pot / LAMPORTS_PER_SOL).toFixed(4)} of ${(cappedPot / LAMPORTS_PER_SOL).toFixed(4)} SOL available`);
 
   const w = WEIGHTS.slice(0, winners.length);
   const wSum = w.reduce((a, b) => a + b, 0);
