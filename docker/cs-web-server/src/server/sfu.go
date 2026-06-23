@@ -351,23 +351,23 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) { // nolint
 
 	// Per-IP cap: stop one client (or a storming old build) from hogging slots so a
 	// single IP can't starve everyone else. Released when the handler returns.
-	ip := clientIP(r)
+	cip := clientIP(r)
 	ipConnMu.Lock()
-	if ipConns[ip] >= maxPerIP {
+	if ipConns[cip] >= maxPerIP {
 		ipConnMu.Unlock()
 		_ = unsafeConn.WriteControl(websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseTryAgainLater, "too many connections"), time.Now().Add(time.Second))
 		_ = unsafeConn.Close()
 		return
 	}
-	ipConns[ip]++
+	ipConns[cip]++
 	ipConnMu.Unlock()
 	defer func() {
 		ipConnMu.Lock()
-		if ipConns[ip] <= 1 {
-			delete(ipConns, ip)
+		if ipConns[cip] <= 1 {
+			delete(ipConns, cip)
 		} else {
-			ipConns[ip]--
+			ipConns[cip]--
 		}
 		ipConnMu.Unlock()
 	}()
