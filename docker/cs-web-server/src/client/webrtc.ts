@@ -10,6 +10,8 @@ export class Xash3DWebRTC extends Xash3D {
     private wasRemote = false
     private timeout?: ReturnType<typeof setTimeout>
     private stream?: MediaStream
+    private connected = false                                // true once both data channels open (in-game)
+    private reconnectTimer?: ReturnType<typeof setTimeout>   // debounce reconnects to prevent a storm
 
     constructor(opts?: Xash3DOptions) {
         super(opts);
@@ -24,15 +26,16 @@ export class Xash3DWebRTC extends Xash3D {
     }
 
     startConnection() {
-        this.peer = new RTCPeerConnection()
-        this.peer.onicecandidate = e => {
+        const peer = new RTCPeerConnection()
+        this.peer = peer
+        peer.onicecandidate = e => {
             if (!e.candidate) {
                 return
             }
             this.wsSend('candidate', e.candidate.toJSON())
         }
         let el: HTMLAudioElement | undefined
-        this.peer.ontrack = (e) => {
+        peer.ontrack = (e) => {
             el = document.createElement(e.track.kind) as HTMLAudioElement
             el.srcObject = e.streams[0]
             el.autoplay = true
@@ -50,20 +53,23 @@ export class Xash3DWebRTC extends Xash3D {
                 }
             }
         }
-        this.peer.onconnectionstatechange = () => {
+        peer.onconnectionstatechange = () => {
             if (el?.parentNode) {
                 el.parentNode.removeChild(el)
                 el = undefined
             }
-            if (this.peer?.connectionState === 'failed') {
-                this.connectWs()
+            // Ignore events from peers we've already replaced.
+            if (peer !== this.peer) return
+            if (peer.connectionState === 'failed') {
+                this.connected = false
+                this.reconnect()   // debounced + full teardown, not an immediate storm
             }
         }
         this.stream?.getTracks()?.forEach(t => {
-            this.peer!.addTrack(t, this.stream!)
+            peer.addTrack(t, this.stream!)
         })
         let channelsCount = 0
-        this.peer.ondatachannel = (e) => {
+        peer.ondatachannel = (e) => {
             if (e.channel.label === 'write') {
                 e.channel.onmessage = (ee) => {
                     const packet: Packet = {
@@ -87,6 +93,7 @@ export class Xash3DWebRTC extends Xash3D {
                     this.channel = e.channel
                 }
                 if (channelsCount === 2) {
+                    this.connected = true   // in-game; the ws is now idle, don't reconnect on its blips
                     if (this.resolve) {
                         const r = this.resolve
                         this.resolve = undefined
@@ -135,10 +142,34 @@ export class Xash3DWebRTC extends Xash3D {
         })
     }
 
+    // Debounced reconnect: collapse repeated triggers into one delayed attempt so a
+    // flapping connection can't hammer the server (the cause of the handler leak/storm).
+    private reconnect() {
+        if (this.reconnectTimer) return
+        this.reconnectTimer = setTimeout(() => {
+            this.reconnectTimer = undefined
+            this.connectWs()
+        }, 3000)
+    }
+
     private connectWs() {
-        if (this.ws) {
-            this.ws.close()
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer)
+            this.reconnectTimer = undefined
         }
+        // Fully tear down the previous attempt — closing the old peer releases the
+        // server's per-peer handler. Abandoned peers were the connection leak.
+        if (this.ws) {
+            this.ws.onerror = null
+            try { this.ws.close() } catch { /* ignore */ }
+            this.ws = undefined
+        }
+        if (this.peer) {
+            try { this.peer.close() } catch { /* ignore */ }
+            this.peer = undefined
+        }
+        this.wasRemote = false
+        this.candidates = []
         const protocol = window.location.protocol === "https:" ? "wss" : "ws";
         const host = window.location.host;
         const handler = async (e: MessageEvent) => {
@@ -162,7 +193,9 @@ export class Xash3DWebRTC extends Xash3D {
         const serverPath = (window as unknown as { __csServerPath?: string }).__csServerPath || ''
         this.ws = new WebSocket(`${protocol}://${host}${serverPath}/websocket`);
         this.ws.onerror = () => {
-            this.connectWs()
+            // Only retry while still establishing the tunnel. Once in-game the ws is
+            // idle, so a blip must NOT trigger a reconnect (that caused re-joins/churn).
+            if (!this.connected) this.reconnect()
         }
         this.ws.addEventListener('message', handler)
         this.ws.onopen = () => {
