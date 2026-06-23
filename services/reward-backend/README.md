@@ -7,10 +7,11 @@ Pure settlement domain logic for the hourly leaderboard payouts (Phase 0, Plan 2
     npm test
 
 ## Modules
-- `period` UTC hour bucketing (period_id)
+- `period` 30-minute bucketing (period_id)
 - `merkle` keccak Merkle tree — byte-identical to `solana/distributor`
-- `leaderboard` hourly points engine
-- `payout` solvency-capped top-10 split
+- `leaderboard` per-period ranking engine — ranks by KILLS (primary metric), tiebreak deaths/matches/wallet
+- `payout` solvency-capped top-7 sliding-scale split
+- `api/store` in-memory store; `api/sqlite-store` disk-backed store (node:sqlite, via LEADERBOARD_DB_PATH)
 - `anticheat` tier-1 heuristics
 - `eligibility` hold-≥N token balance (injected reader, fail-closed)
 - `settle` pipeline: rank → screen → gate → split → root

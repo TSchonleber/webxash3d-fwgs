@@ -1,0 +1,29 @@
+services:
+  reward-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: chainstrike/reward-backend:latest
+    restart: always
+    environment:
+      PORT: 8787
+      # Persisted leaderboard DB (lives on the named volume below).
+      LEADERBOARD_DB_PATH: /data/leaderboard.db
+      # Settlement / Solana config — supply via a .env file next to this compose.
+      OPERATOR_PUBKEYS: ${OPERATOR_PUBKEYS:-}
+      MIN_MATCHES: ${MIN_MATCHES:-1}
+      MIN_TOKENS: ${MIN_TOKENS:-1000}
+      GAME_MINT: ${GAME_MINT:-}
+      RPC_URL: ${RPC_URL:-https://api.devnet.solana.com}
+      BUDGET_BPS: ${BUDGET_BPS:-1000}
+      VAULT_LAMPORTS: ${VAULT_LAMPORTS:-0}
+      DISTRIBUTOR_PROGRAM_ID: ${DISTRIBUTOR_PROGRAM_ID:-}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+    volumes:
+      # Named volume keeps the SQLite DB across `docker compose up/down` and restarts.
+      - leaderboard-data:/data
+    ports:
+      - "8787:8787"
+
+volumes:
+  leaderboard-data:
