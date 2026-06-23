@@ -649,10 +649,18 @@ func init() {
 const maxPlayers = 30
 
 // playersHandler reports the live connected count vs capacity so the client can
-// show a join queue when the match is full.
+// show a join queue when the match is full. Counts only peers in the Connected
+// state — the peerConnections slice retains stale Failed/Disconnected entries
+// (only Closed ones are reaped), so len() would massively over-count.
 func playersHandler(w http.ResponseWriter, _ *http.Request) {
 	listLock.RLock()
-	count := len(peerConnections)
+	count := 0
+	for _, pc := range peerConnections {
+		if pc != nil && pc.peerConnection != nil &&
+			pc.peerConnection.ConnectionState() == webrtc.PeerConnectionStateConnected {
+			count++
+		}
+	}
 	listLock.RUnlock()
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
