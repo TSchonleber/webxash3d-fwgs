@@ -1,4 +1,5 @@
 import "./theme.css";
+import { Component, type ReactNode } from "react";
 import { Home } from "./components/Home";
 import { EligibilityBadge } from "./components/EligibilityBadge";
 import { PrizePool } from "./components/PrizePool";
@@ -73,10 +74,33 @@ function Root() {
   return <Home />;
 }
 
+/** Catches render crashes so a failure shows a message + reload, never a black screen. */
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error) { console.error("ChainStrike crashed:", error); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="app" style={{ padding: 32, color: "var(--text)" }}>
+          <h2>Something went wrong.</h2>
+          <p style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 13 }}>
+            {this.state.error.message}
+          </p>
+          <button className="btn" onClick={() => location.reload()}>Reload</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   return (
-    <div className="app">
-      <Root />
-    </div>
+    <ErrorBoundary>
+      <div className="app">
+        <Root />
+      </div>
+    </ErrorBoundary>
   );
 }

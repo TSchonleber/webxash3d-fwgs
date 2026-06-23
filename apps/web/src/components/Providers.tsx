@@ -36,6 +36,11 @@ export function Providers({ children }: { children: ReactNode }) {
         loginMethods: ["email", "wallet"],
         externalWallets: { solana: { connectors: solanaConnectors } },
         embeddedWallets: {
+          // Sign + send transactions programmatically without Privy's modal
+          // confirmation UI. That modal was rendering as a black screen on
+          // withdraw/swap; for a game wallet, seamless signing is the right UX
+          // (the user already confirmed by hitting Send/Swap).
+          showWalletUIs: false,
           solana: { createOnLogin: "users-without-wallets" },
         },
       }}
