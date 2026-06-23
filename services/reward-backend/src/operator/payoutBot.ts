@@ -28,6 +28,9 @@ const PER_ROUND_SOL = Number(process.env.PER_ROUND_SOL ?? 0.1); // total pot dis
 const TOP_N = Number(process.env.TOP_N ?? 7);
 const WEIGHTS = (process.env.WEIGHTS ?? "30,22,16,12,9,7,4").split(",").map(Number);
 const MIN_KILLS = Number(process.env.MIN_KILLS ?? 1);
+// Only run the (full-pool) payout when at least this many players are on the
+// board — otherwise skip and let the pool accumulate for a busier round.
+const MIN_PLAYERS = Number(process.env.MIN_PLAYERS ?? 7);
 const FEE_BUFFER_SOL = Number(process.env.FEE_BUFFER_SOL ?? 0.01);
 const PERIOD_MS = 900_000;   // 15-min payout periods
 
@@ -66,6 +69,13 @@ async function payPeriod(hour: number): Promise<void> {
   if (!res.ok) throw new Error(`leaderboard fetch failed: ${res.status}`);
   const entries = (await res.json()) as Entry[];
 
+  // Gate: the full-pool payout only fires with real competition. Fewer than
+  // MIN_PLAYERS on the board -> skip this round, leaving the pool to grow.
+  if (entries.length < MIN_PLAYERS) {
+    console.log(`period ${hour}: ${entries.length} players on board (<${MIN_PLAYERS}) — skipped, pool preserved`);
+    return;
+  }
+
   const winners = entries
     .filter((e) => isWallet(e.wallet) && (e.kills ?? 0) >= MIN_KILLS)
     .slice(0, TOP_N);
@@ -83,10 +93,10 @@ async function payPeriod(hour: number): Promise<void> {
   const treasury = loadTreasury();
   const conn = new Connection(RPC, "confirmed");
   const bal = await conn.getBalance(treasury.publicKey);
-  const pot = Math.min(
-    Math.floor(PER_ROUND_SOL * LAMPORTS_PER_SOL),
-    Math.max(0, bal - Math.floor(FEE_BUFFER_SOL * LAMPORTS_PER_SOL)),
-  );
+  // Distribute the entire treasury (minus a fee buffer) to the round's winners.
+  // PER_ROUND_SOL is an optional cap: > 0 caps the pot; 0 pays out the full pool.
+  const fullPot = Math.max(0, bal - Math.floor(FEE_BUFFER_SOL * LAMPORTS_PER_SOL));
+  const pot = PER_ROUND_SOL > 0 ? Math.min(Math.floor(PER_ROUND_SOL * LAMPORTS_PER_SOL), fullPot) : fullPot;
   if (pot <= 0) {
     console.log(`period ${hour}: treasury too low (${bal / LAMPORTS_PER_SOL} SOL) — fund it`);
     return;
