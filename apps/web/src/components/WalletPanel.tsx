@@ -85,7 +85,10 @@ function PrivyWalletPanel() {
   if (!wallet || !address) {
     return (
       <Shell>
-        <p className="lock-note">No embedded wallet yet — log in to create one.</p>
+        <p className="lock-note">
+          No embedded wallet yet — log in with <b>email</b> to create one.
+          Connecting an external wallet (Phantom, etc.) uses that wallet instead.
+        </p>
       </Shell>
     );
   }
