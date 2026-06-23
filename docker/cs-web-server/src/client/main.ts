@@ -21,6 +21,18 @@ function goToLobby() {
 document.title = 'ChainStrike'
 setInterval(() => { if (document.title !== 'ChainStrike') document.title = 'ChainStrike' }, 1000)
 
+// Block the in-game developer console — players shouldn't reach it. The console
+// toggle is the backtick/tilde key; swallow it at the window capture phase so it
+// never reaches the engine's canvas key handler.
+const blockConsoleKey = (e: KeyboardEvent) => {
+    if (e.code === 'Backquote' || e.key === '`' || e.key === '~') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+    }
+}
+window.addEventListener('keydown', blockConsoleKey, true)
+window.addEventListener('keyup', blockConsoleKey, true)
+
 const touchControls = document.getElementById('touchControls') as HTMLInputElement
 touchControls.addEventListener('change', () => {
     localStorage.setItem('touchControls', String(touchControls.checked))
