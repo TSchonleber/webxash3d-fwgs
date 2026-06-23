@@ -77,6 +77,30 @@
         #queue .q-s{ color:var(--mut); font-family:'Spline Sans Mono',monospace; font-size:14px; max-width:40ch; line-height:1.5 }
         #queue .q-n{ font-family:'Spline Sans Mono',monospace; color:var(--txt); font-size:13px; margin-top:4px }
 
+        /* instance picker */
+        #servers{ position:fixed; inset:0; z-index:10; display:none; flex-direction:column; align-items:center; justify-content:center;
+                  gap:20px; padding:28px; background:var(--ink); color:var(--txt); overflow:auto }
+        #servers.show{ display:flex }
+        #servers .srv-head{ display:flex; flex-direction:column; align-items:center; gap:10px }
+        #servers .srv-head img{ width:56px; height:56px; border-radius:14px }
+        #servers .srv-title{ font-family:'Oxanium',sans-serif; font-weight:800; font-size:clamp(18px,4vw,24px); letter-spacing:2px; text-transform:uppercase }
+        #servers .srv-title b{ color:var(--lime) }
+        .srv-quick{ font-family:'Oxanium',sans-serif; font-weight:800; font-size:15px; letter-spacing:2px; text-transform:uppercase;
+                    background:var(--lime); color:var(--ink); border:0; border-radius:12px; padding:14px 32px; cursor:pointer }
+        .srv-quick:active{ transform:translateY(1px) }
+        #servers .srv-grid{ display:flex; gap:14px; flex-wrap:wrap; justify-content:center }
+        #servers .srv-card{ width:200px; max-width:80vw; padding:18px; border:2px solid rgba(198,255,61,.38); border-radius:14px;
+                            background:rgba(255,255,255,.04); cursor:pointer; text-align:center; transition:border-color .15s, background .15s, transform .15s;
+                            display:flex; flex-direction:column; gap:5px; align-items:center }
+        #servers .srv-card:hover{ border-color:var(--lime); background:rgba(198,255,61,.1); transform:translateY(-3px) }
+        #servers .srv-card:active{ transform:translateY(0) }
+        #servers .srv-map{ font-family:'Oxanium',sans-serif; font-weight:800; font-size:20px; letter-spacing:1px }
+        #servers .srv-mode{ font-family:'Spline Sans Mono',monospace; font-size:10px; letter-spacing:1.5px; color:var(--mut) }
+        #servers .srv-count{ font-family:'Spline Sans Mono',monospace; font-size:18px; color:var(--lime); margin-top:4px }
+        #servers .srv-go{ font-family:'Oxanium',sans-serif; font-weight:800; font-size:11px; letter-spacing:2px; color:var(--lime); margin-top:4px }
+        #servers .srv-card.full{ opacity:.55; border-color:rgba(255,46,136,.5) }
+        #servers .srv-card.full .srv-count{ color:var(--mag) }
+
         /* pre-launch lock screen */
         #locked{ position:fixed; inset:0; z-index:30; display:none; flex-direction:column; align-items:center; justify-content:center;
                  gap:14px; text-align:center; padding:32px; background:var(--ink); color:var(--txt) }
@@ -159,6 +183,34 @@
     <div class="lk-lock">🔒</div>
     <div class="lk-t">Locked until <b>$CS</b> launch</div>
     <div class="lk-s">ChainStrike opens to holders of 1000&nbsp;$CS. The drop is coming soon — follow for the launch.</div>
+</div>
+
+<div id="servers">
+    <div class="srv-head">
+        <img src="logo.png" alt="ChainStrike"/>
+        <div class="srv-title">Choose a <b>match</b></div>
+    </div>
+    <button id="srv-quick" class="srv-quick">⚡ Quick Join</button>
+    <div class="srv-grid">
+        <div class="srv-card" id="srv-0">
+            <div class="srv-map">MATCH 1</div>
+            <div class="srv-mode">FFA · ROTATING MAPS</div>
+            <div class="srv-count" id="srv-0-count">— / 15</div>
+            <div class="srv-go">JOIN ▸</div>
+        </div>
+        <div class="srv-card" id="srv-1">
+            <div class="srv-map">MATCH 2</div>
+            <div class="srv-mode">FFA · ROTATING MAPS</div>
+            <div class="srv-count" id="srv-1-count">— / 15</div>
+            <div class="srv-go">JOIN ▸</div>
+        </div>
+        <div class="srv-card" id="srv-2">
+            <div class="srv-map">MATCH 3</div>
+            <div class="srv-mode">FFA · ROTATING MAPS</div>
+            <div class="srv-count" id="srv-2-count">— / 15</div>
+            <div class="srv-go">JOIN ▸</div>
+        </div>
+    </div>
 </div>
 
 <form id="form">

@@ -262,9 +262,26 @@ function setupChat(x: { Cmd_ExecuteString: (cmd: string) => void }): boolean {
     return true
 }
 
+// Game instances (each a 15-player match on its own core/relay). Caddy routes the
+// path prefixes to the separate containers. Load-balance: join the emptiest one.
+const INSTANCES = ['', '/m2', '/m3']
+async function pickInstance(): Promise<string> {
+    const results = await Promise.all(INSTANCES.map(async (p) => {
+        try {
+            const r = await fetch(`${p}/players`, { cache: 'no-store' })
+            const d = (await r.json()) as { count: number }
+            return { path: p, count: typeof d.count === 'number' ? d.count : Infinity }
+        } catch {
+            return { path: p, count: Infinity }
+        }
+    }))
+    results.sort((a, b) => a.count - b.count)
+    return results[0].path // emptiest instance (or '' if none reachable)
+}
+
 async function main() {
-    // The selected session ('' = de_train, '/d2' = de_dust2). Set by startGame()
-    // before main() runs; routes /config, /players and the engine connection.
+    // The chosen instance ('' / '/m2' / '/m3') — set by the picker (or Quick Join)
+    // before main() runs. Routes /config, /players and the engine connection.
     const serverPath = (window as unknown as { __csServerPath?: string }).__csServerPath || ''
     // Load dynamic configuration from server (environment variables)
     const config = await fetch(`${serverPath}/config`).then(res => res.json()) as Awaited<{
@@ -430,43 +447,8 @@ if (username) {
 
 const form = document.getElementById('form') as HTMLFormElement
 
-form.addEventListener('submit', (e) => {
-    e.preventDefault()
-    const username = (document.getElementById('username') as HTMLInputElement).value
-    localStorage.setItem('username', username)
-    form.style.display = 'none'; document.getElementById('connecting')!.style.display = 'flex'
-    usernamePromiseResolve(username)
-})
-
-document.getElementById('spectate')!.addEventListener('click', () => {
-    spectateMode = true
-    form.style.display = 'none'; document.getElementById('connecting')!.style.display = 'flex'
-    const name = (document.getElementById('username') as HTMLInputElement).value || 'spectator'
-    usernamePromiseResolve(name)
-})
-
-// ?name=<callsign> -> the dashboard launched us with a registered callsign;
-// skip the form and drop straight in (the name resolves to the player's wallet).
-const presetName = new URLSearchParams(window.location.search).get('name')
-if (presetName && !spectateMode) {
-    localStorage.setItem('username', presetName)
-    ;(document.getElementById('username') as HTMLInputElement).value = presetName
-    form.style.display = 'none'; document.getElementById('connecting')!.style.display = 'flex'
-    usernamePromiseResolve(presetName)
-}
-
-// ?spectate -> jump straight into spectator view, no form
-if (spectateMode) {
-    form.style.display = 'none'; document.getElementById('connecting')!.style.display = 'flex'
-    usernamePromiseResolve('spectator')
-}
-
 // ============================================================================
-// PRE-LAUNCH LOCK (ticker: $CS) — currently OPEN.
-// To re-lock pre-token-gate: set LOCKED = true. To open at $CS launch WITH a real
-// gate, first build the server-side >=1000 $CS check (dashboard verifies the
-// wallet balance -> signed pass -> cs-web-server validates before connect), then
-// keep LOCKED = false. The client flag alone is bypassable via the direct URL.
+// PRE-LAUNCH LOCK (ticker: $CS) — currently OPEN. Set LOCKED=true to re-lock.
 // ============================================================================
 const LOCKED = false
 const BYPASS_KEY = 'cs-unlock-7f3aq92k'
@@ -475,12 +457,82 @@ if (new URLSearchParams(window.location.search).get('key') === BYPASS_KEY) {
 }
 const unlocked = !LOCKED || localStorage.getItem('cs_unlock') === BYPASS_KEY
 
+// Start the game on a chosen instance: set the WS path before the engine connects,
+// then run main() once.
+let gameStarted = false
+function startGame(serverPath: string) {
+    if (gameStarted) return
+    gameStarted = true
+    ;(window as unknown as { __csServerPath: string }).__csServerPath = serverPath
+    document.getElementById('servers')?.classList.remove('show')
+    document.getElementById('connecting')!.style.display = 'flex'
+    main()
+}
+
+// Instance picker with live counts + Quick Join (auto-balance to the emptiest).
+function showInstancePicker() {
+    const panel = document.getElementById('servers')
+    if (!panel) { pickInstance().then(startGame); return } // no picker DOM -> auto-balance
+    panel.classList.add('show')
+    const refresh = () => {
+        INSTANCES.forEach((p, i) => {
+            fetch(`${p}/players`, { cache: 'no-store' })
+                .then((r) => r.json())
+                .then((d: { count: number; max: number }) => {
+                    const cnt = document.getElementById(`srv-${i}-count`)
+                    if (cnt) cnt.textContent = `${d.count} / ${d.max}`
+                    document.getElementById(`srv-${i}`)?.classList.toggle('full', d.count >= d.max)
+                })
+                .catch(() => {})
+        })
+    }
+    refresh()
+    const iv = setInterval(refresh, 3000)
+    INSTANCES.forEach((p, i) => {
+        document.getElementById(`srv-${i}`)?.addEventListener('click', () => { clearInterval(iv); startGame(p) })
+    })
+    document.getElementById('srv-quick')?.addEventListener('click', () => { clearInterval(iv); pickInstance().then(startGame) })
+}
+
 if (!unlocked) {
     // Show the lock screen and do NOT load/connect the game.
     const lk = document.getElementById('locked'); if (lk) lk.style.display = 'flex'
     form.style.display = 'none'
 } else {
-    main()
+    form.addEventListener('submit', (e) => {
+        e.preventDefault()
+        const username = (document.getElementById('username') as HTMLInputElement).value
+        localStorage.setItem('username', username)
+        form.style.display = 'none'
+        usernamePromiseResolve(username)
+        showInstancePicker()
+    })
+
+    document.getElementById('spectate')!.addEventListener('click', () => {
+        spectateMode = true
+        form.style.display = 'none'
+        const name = (document.getElementById('username') as HTMLInputElement).value || 'spectator'
+        usernamePromiseResolve(name)
+        showInstancePicker()
+    })
+
+    // ?name=<callsign> from the dashboard -> skip the form, go to the picker.
+    const presetName = new URLSearchParams(window.location.search).get('name')
+    if (presetName && !spectateMode) {
+        localStorage.setItem('username', presetName)
+        ;(document.getElementById('username') as HTMLInputElement).value = presetName
+        form.style.display = 'none'
+        usernamePromiseResolve(presetName)
+        showInstancePicker()
+    }
+
+    // ?spectate -> jump straight in, picker first
+    if (spectateMode) {
+        form.style.display = 'none'
+        usernamePromiseResolve('spectator')
+        showInstancePicker()
+    }
+
     // Robust mobile-control bootstrap: wire controls once the engine + elements are
     // ready (visibility handled by CSS). Re-evaluates touch each tick. Cheap.
     let wiredTouch = false, wiredChat = false
