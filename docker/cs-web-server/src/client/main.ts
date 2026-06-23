@@ -109,15 +109,16 @@ async function fetchWithProgress(url: string) {
     return blob.arrayBuffer()
 }
 
-// Lightweight DOM touch controls (move pad + fire). Inputs are injected via the
-// engine's +/- button commands, so there are no textures to load (no OOM) and the
-// transport is untouched. Step 1: move + fire; look/jump/etc come next.
+// Lightweight DOM controls (move pad + look + fire). Inputs go through the engine's
+// +/- button commands — no textures to load (no OOM), transport untouched. Uses
+// Pointer Events so it works with touch (phone) AND mouse (desktop demo).
 function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }) {
     const mctl = document.getElementById('mctl')
     const pad = document.getElementById('mpad')
     const nub = document.getElementById('mnub')
     const fire = document.getElementById('mfire')
-    if (!mctl || !pad || !nub || !fire) return
+    const look = document.getElementById('mlook')
+    if (!mctl || !pad || !nub || !fire || !look) return
     mctl.hidden = false
 
     const active = new Set<string>()
@@ -125,14 +126,14 @@ function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }) {
         if (on && !active.has(cmd)) { active.add(cmd); x.Cmd_ExecuteString('+' + cmd) }
         else if (!on && active.has(cmd)) { active.delete(cmd); x.Cmd_ExecuteString('-' + cmd) }
     }
-    const clearMove = () => { ['forward', 'back', 'moveleft', 'moveright'].forEach((c) => set(c, false)); nub.style.transform = '' }
 
+    // ---- move pad (left) ----
+    const clearMove = () => { ['forward', 'back', 'moveleft', 'moveright'].forEach((c) => set(c, false)); nub.style.transform = '' }
     let padId: number | null = null
-    const padMove = (t: Touch) => {
+    const padMove = (cx: number, cy: number) => {
         const r = pad.getBoundingClientRect()
         const max = r.width / 2
-        let dx = t.clientX - (r.left + max)
-        let dy = t.clientY - (r.top + max)
+        let dx = cx - (r.left + max), dy = cy - (r.top + max)
         const dist = Math.hypot(dx, dy)
         if (dist > max) { dx *= max / dist; dy *= max / dist }
         nub.style.transform = `translate(${dx}px, ${dy}px)`
@@ -140,34 +141,33 @@ function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }) {
         set('forward', dy < -dz); set('back', dy > dz)
         set('moveleft', dx < -dz); set('moveright', dx > dz)
     }
-    pad.addEventListener('touchstart', (e) => { e.preventDefault(); const t = e.changedTouches[0]; padId = t.identifier; padMove(t) }, { passive: false })
-    pad.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of Array.from(e.changedTouches)) if (t.identifier === padId) padMove(t) }, { passive: false })
-    const padEnd = (e: TouchEvent) => { for (const t of Array.from(e.changedTouches)) if (t.identifier === padId) { padId = null; clearMove() } }
-    pad.addEventListener('touchend', padEnd); pad.addEventListener('touchcancel', padEnd)
+    pad.addEventListener('pointerdown', (e) => { e.preventDefault(); padId = e.pointerId; pad.setPointerCapture(e.pointerId); padMove(e.clientX, e.clientY) })
+    pad.addEventListener('pointermove', (e) => { if (e.pointerId === padId) { e.preventDefault(); padMove(e.clientX, e.clientY) } })
+    const padEnd = (e: PointerEvent) => { if (e.pointerId === padId) { padId = null; clearMove() } }
+    pad.addEventListener('pointerup', padEnd); pad.addEventListener('pointercancel', padEnd)
 
-    fire.addEventListener('touchstart', (e) => { e.preventDefault(); x.Cmd_ExecuteString('+attack') }, { passive: false })
-    const fireEnd = (e: TouchEvent) => { e.preventDefault(); x.Cmd_ExecuteString('-attack') }
-    fire.addEventListener('touchend', fireEnd, { passive: false }); fire.addEventListener('touchcancel', fireEnd)
+    // ---- fire (right) ----
+    const fireUp = () => x.Cmd_ExecuteString('-attack')
+    fire.addEventListener('pointerdown', (e) => { e.preventDefault(); fire.setPointerCapture(e.pointerId); x.Cmd_ExecuteString('+attack') })
+    fire.addEventListener('pointerup', fireUp); fire.addEventListener('pointercancel', fireUp); fire.addEventListener('pointerleave', fireUp)
 
-    // Look/aim: right-side drag zone. Mouse injection doesn't reach the engine on
-    // mobile, so use the keyboard-look button commands (+left/+right/+lookup/
-    // +lookdown) — the same Cmd_ExecuteString path that move uses. Joystick-style:
-    // hold the drag off-center to keep turning that way; release to stop.
-    const look = document.getElementById('mlook')
+    // ---- look/aim (right-side drag) ----
+    // Mouse injection doesn't reach the engine, so use the keyboard-look commands
+    // (+left/+right/+lookup/+lookdown) — same path move uses. Joystick-style: hold
+    // the drag off-center to keep turning; release to stop.
     x.Cmd_ExecuteString('cl_yawspeed 280')
     x.Cmd_ExecuteString('cl_pitchspeed 240')
-    let lookId: number | null = null, lsx = 0, lsy = 0
     const clearLook = () => ['left', 'right', 'lookup', 'lookdown'].forEach((c) => set(c, false))
-    const lookMove = (t: Touch) => {
-        const dx = t.clientX - lsx, dy = t.clientY - lsy
-        const dz = 16
+    let lookId: number | null = null, lsx = 0, lsy = 0
+    const lookMove = (cx: number, cy: number) => {
+        const dx = cx - lsx, dy = cy - lsy, dz = 16
         set('right', dx > dz); set('left', dx < -dz)
         set('lookup', dy < -dz); set('lookdown', dy > dz)
     }
-    look?.addEventListener('touchstart', (e) => { e.preventDefault(); const t = e.changedTouches[0]; lookId = t.identifier; lsx = t.clientX; lsy = t.clientY }, { passive: false })
-    look?.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of Array.from(e.changedTouches)) if (t.identifier === lookId) lookMove(t) }, { passive: false })
-    const lookEnd = (e: TouchEvent) => { for (const t of Array.from(e.changedTouches)) if (t.identifier === lookId) { lookId = null; clearLook() } }
-    look?.addEventListener('touchend', lookEnd); look?.addEventListener('touchcancel', lookEnd)
+    look.addEventListener('pointerdown', (e) => { e.preventDefault(); lookId = e.pointerId; look.setPointerCapture(e.pointerId); lsx = e.clientX; lsy = e.clientY })
+    look.addEventListener('pointermove', (e) => { if (e.pointerId === lookId) { e.preventDefault(); lookMove(e.clientX, e.clientY) } })
+    const lookEnd = (e: PointerEvent) => { if (e.pointerId === lookId) { lookId = null; clearLook() } }
+    look.addEventListener('pointerup', lookEnd); look.addEventListener('pointercancel', lookEnd)
 }
 
 async function main() {
