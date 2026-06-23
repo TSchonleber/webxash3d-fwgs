@@ -172,6 +172,19 @@ async function main() {
     x.main()
     if (touchControls.checked || isTouchDevice) {
         x.Cmd_ExecuteString('touch_enable 1')
+        // The stock CS touch profile dumps ~25 buttons on screen. Strip it down to
+        // the FFA-deathmatch essentials: move + look + fire/aim/jump/duck/reload/
+        // use/switch-weapon. The client (re)creates buttons on spawn, so sweep a
+        // few times after dropping in.
+        const CLUTTER = [
+            'joy', 'dpad', 'invprev', 'spraypaint', 'drop',
+            'w1', 'w2', 'w3', 'w4', 'w5',
+            'flight', 'light', 'buy', 'score',
+            'nightvision', 'minus_nvg', 'plus_nvg', 'numbers',
+            'duck_sw', 'change_team', 'exit', 'touch_edit', 'cmd', 'radio', 'walk',
+        ]
+        const declutter = () => CLUTTER.forEach((b) => x.Cmd_ExecuteString(`touch_removebutton ${b}`))
+        for (const t of [7000, 9000, 12000, 16000, 22000]) setTimeout(declutter, t)
     }
     x.Cmd_ExecuteString(`name "${username}"`)
     
