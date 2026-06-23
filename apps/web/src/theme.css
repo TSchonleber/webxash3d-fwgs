@@ -125,12 +125,16 @@
 }
 .hud-board li:last-child { border-bottom: 0; }
 .hb-rank { color: var(--text-faint); font-size: 12px; }
-.hb-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-name { color: var(--text); display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.hb-who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-sub { color: var(--text-faint); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hb-kills { color: var(--lime); font-weight: 600; font-variant-numeric: tabular-nums; }
 .hb-kills i { color: var(--text-faint); font-style: normal; font-size: 11px; }
 /* leader = solid lime bar */
 .hud-board li.lead { background: var(--lime); margin: 0 calc(-1 * var(--s2)); padding-inline: var(--s2); border-bottom-color: var(--lime); }
 .hud-board li.lead .hb-rank, .hud-board li.lead .hb-name, .hud-board li.lead .hb-kills { color: var(--lime-ink); }
+.hud-board li.lead .hb-who { color: var(--lime-ink); }
+.hud-board li.lead .hb-sub { color: var(--lime-ink); opacity: 0.7; }
 .hud-board li.lead .hb-kills i { color: var(--lime-ink); opacity: 0.7; }
 .hud-empty { display: block; grid-column: 1 / -1; color: var(--text-faint); padding: var(--s4) var(--s2); line-height: 1.5; }
 

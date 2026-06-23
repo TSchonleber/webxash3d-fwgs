@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
-import { useLeaderboard } from "../lib/useLeaderboard";
-import { API_BASE, TOKEN_MINT, TOKEN_SYMBOL, msToNextPayout } from "../lib/config";
+import { API_BASE, TOKEN_MINT, TOKEN_SYMBOL, msToNextDailyPayout } from "../lib/config";
+import type { DailyEntry } from "../lib/api";
 import { shortWallet } from "../lib/format";
 
 /** Live prize-pool reading (on-chain treasury balance), polled. */
@@ -44,26 +44,46 @@ function usePayouts() {
   return payouts;
 }
 
+/** Daily Top-10 skill leaderboard (kills/wins/streaks − deaths), polled. */
+function useDailyBoard() {
+  const [board, setBoard] = useState<DailyEntry[]>([]);
+  useEffect(() => {
+    let on = true;
+    const tick = () =>
+      fetch(`${API_BASE}/leaderboard/daily`)
+        .then((r) => r.json())
+        .then((d) => on && setBoard(Array.isArray(d) ? d : []))
+        .catch(() => {});
+    tick();
+    const id = setInterval(tick, 10000);
+    return () => {
+      on = false;
+      clearInterval(id);
+    };
+  }, []);
+  return board;
+}
+
 const TREASURY = "6omjnxK1H4X3JaJZmwr8jzyEUY5jwgaDsP4mQcxeDJjk";
 
 const STEPS = [
   { k: "DROP IN", body: "Pick a callsign and load straight into the live free-for-all. No install, no team menu — you spawn with a rifle." },
-  { k: "RACK FRAGS", body: "Every kill scores. The board ranks purely by frags and wipes every 30 minutes — each round is a clean slate." },
-  { k: "GET PAID", body: "When the round closes, the top fraggers are paid in SOL, straight to the wallet tied to your callsign." },
+  { k: "RACK FRAGS", body: "Every kill scores. You're ranked by a skill score — kills, win streaks and lobby wins, minus deaths — on a board that runs all day and resets at midnight UTC." },
+  { k: "GET PAID", body: "Each day the Top 10 on the leaderboard are paid in SOL, straight to the wallet tied to your callsign." },
 ];
 
 export function Home() {
   const { ready, login } = useAuth();
   const pool = usePool();
-  const live = useLeaderboard();
-  const top = live.entries.slice(0, 8);
+  const top = useDailyBoard().slice(0, 10);
   const payouts = usePayouts();
-  const [toPay, setToPay] = useState(() => msToNextPayout());
+  const [toPay, setToPay] = useState(() => msToNextDailyPayout());
   useEffect(() => {
-    const id = setInterval(() => setToPay(msToNextPayout()), 1000);
+    const id = setInterval(() => setToPay(msToNextDailyPayout()), 1000);
     return () => clearInterval(id);
   }, []);
-  const payMin = Math.max(0, Math.floor(toPay / 60000));
+  const payHrs = Math.max(0, Math.floor(toPay / 3_600_000));
+  const payMin = Math.max(0, Math.floor((toPay % 3_600_000) / 60000));
   const paySec = Math.max(0, Math.floor((toPay % 60000) / 1000));
   const [caCopied, setCaCopied] = useState(false);
   const copyCA = () => {
@@ -90,8 +110,8 @@ export function Home() {
           <div className="eyebrow"><span className="dot" /> LIVE · FREE-FOR-ALL · DE_TRAIN</div>
           <h1>Frag for <span className="g">SOL</span>.</h1>
           <p>
-            Counter-Strike 1.6 in your browser. Top the kill count and the prize
-            pool pays out on Solana every 30 minutes.
+            Counter-Strike 1.6 in your browser. Climb the daily skill
+            leaderboard — the Top 10 are paid in SOL every day.
           </p>
           <div className="hero-cta">
             <button className="btn play" disabled={!ready} onClick={login}>▸ SIGN IN TO PLAY</button>
@@ -109,20 +129,23 @@ export function Home() {
             <span className="hud-pool-num">{pool === null ? "—" : pool.toFixed(2)}</span>
             <span className="hud-pool-unit">SOL</span>
           </div>
-          <div className="hud-sub">paid to the top 7 · next payout in <b className="mono">{payMin}:{String(paySec).padStart(2, "0")}</b></div>
+          <div className="hud-sub">paid to today's <b>Top 10</b> · daily payout in <b className="mono">{payHrs}:{String(payMin).padStart(2, "0")}:{String(paySec).padStart(2, "0")}</b></div>
           <div className="hud-sep" />
-          <div className="hud-label">THIS ROUND · TOP FRAGGERS</div>
+          <div className="hud-label">TODAY · TOP 10 · BY SKILL SCORE</div>
           <ol className="hud-board">
             {top.length === 0 && (
               <li className="hud-empty" style={{ display: "block", gridColumn: "1 / -1" }}>
-                No frags logged this round yet — be the first on the board.
+                No frags logged today yet — be the first on the board.
               </li>
             )}
             {top.map((e, i) => (
               <li key={e.wallet} className={i === 0 ? "lead" : ""}>
                 <span className="hb-rank">{String(i + 1).padStart(2, "0")}</span>
-                <span className="hb-name">{shortWallet(e.wallet)}</span>
-                <span className="hb-kills">{(e as { kills?: number }).kills ?? 0}<i> K</i></span>
+                <span className="hb-name">
+                  <span className="hb-who">{shortWallet(e.wallet)}</span>
+                  <small className="hb-sub">{e.kills}K / {e.deaths}D · {e.kd} K/D · {e.winPct}% W{e.bestStreak ? ` · ${e.bestStreak} streak` : ""}</small>
+                </span>
+                <span className="hb-kills">{e.score}<i> PTS</i></span>
               </li>
             ))}
           </ol>

@@ -65,3 +65,20 @@ export function msToNextPayout(now: number = Date.now()): number {
 export function displayHour(now: number = Date.now()): number {
   return Math.floor((now - PAYOUT_OFFSET_MS) / PERIOD_MS);
 }
+
+// --- Daily settlement -------------------------------------------------------
+// The daily skill leaderboard pays the Top 10 once per UTC day. Day index must
+// match the backend's /leaderboard/daily bucketing (floor(unixMs / 86_400_000)).
+export const DAY_MS = 86_400_000;
+
+/** Current UTC day index. */
+export function currentUtcDay(now: number = Date.now()): number {
+  return Math.floor(now / DAY_MS);
+}
+
+/** ms until the next daily payout (UTC midnight + the dispersal offset). */
+export function msToNextDailyPayout(now: number = Date.now()): number {
+  const lastMidnight = Math.floor(now / DAY_MS) * DAY_MS;
+  const thisPayout = lastMidnight + PAYOUT_OFFSET_MS;
+  return (now < thisPayout ? thisPayout : lastMidnight + DAY_MS + PAYOUT_OFFSET_MS) - now;
+}

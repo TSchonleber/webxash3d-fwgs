@@ -1,4 +1,9 @@
 export interface RankedEntry { wallet: string; kills: number; deaths: number; matches: number; rank: number; }
+export interface DailyEntry {
+  wallet: string; kills: number; deaths: number; kd: number;
+  headshots: number; hsPct: number; bestStreak: number;
+  wins: number; matches: number; winPct: number; score: number; rank: number;
+}
 export interface ClaimData { periodId: number; index: number; amount: string; proof: string[]; }
 export interface PoolInfo { vaultAddress: string | null; lamports: number; sol: number; denom: string; }
 
@@ -12,6 +17,13 @@ export class RewardApi {
     const res = await fetch(`${this.base}/leaderboard/${hour}`);
     if (!res.ok) return [];
     return (await res.json()) as RankedEntry[];
+  }
+
+  /** Daily Top-10 ranked by weighted skill score. */
+  async dailyLeaderboard(): Promise<DailyEntry[]> {
+    const res = await fetch(`${this.base}/leaderboard/daily`);
+    if (!res.ok) return [];
+    return (await res.json()) as DailyEntry[];
   }
 
   async claim(hour: number, wallet: string): Promise<ClaimData | null> {
