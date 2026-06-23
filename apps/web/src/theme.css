@@ -521,3 +521,7 @@ body::after {
 .wallet-token-amt { color: var(--lime); font-weight: 600; }
 .wallet-token-sym { color: var(--text-dim); font-size: 12px; letter-spacing: 0.06em; }
 .wallet-token-soon { color: var(--text-faint); font-size: 12px; }
+
+.play-row { display: flex; gap: 10px; margin-bottom: 4px; }
+.play-row .wallet-input { flex: 1; }
+.play-row .btn { flex: 0 0 auto; }

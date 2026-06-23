@@ -211,6 +211,17 @@ document.getElementById('spectate')!.addEventListener('click', () => {
     usernamePromiseResolve(name)
 })
 
+// ?name=<callsign> -> the dashboard launched us with a registered callsign;
+// skip the form and drop straight in under that exact name (so the leaderboard
+// resolves it to the player's wallet for payouts).
+const presetName = new URLSearchParams(window.location.search).get('name')
+if (presetName && !spectateMode) {
+    localStorage.setItem('username', presetName)
+    ;(document.getElementById('username') as HTMLInputElement).value = presetName
+    form.style.display = 'none'; document.getElementById('connecting')!.style.display = 'flex'
+    usernamePromiseResolve(presetName)
+}
+
 // ?spectate -> jump straight into spectator view, no form
 if (spectateMode) {
     form.style.display = 'none'; document.getElementById('connecting')!.style.display = 'flex'
