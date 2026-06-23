@@ -310,6 +310,34 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) { // nolint
 	// When this frame returns close the Websocket
 	defer c.Close() //nolint
 
+	// Keepalive: detect dead/half-open connections (ungraceful mobile/tab closes
+	// leave the TCP socket open so ReadMessage would block forever, leaking the
+	// handler + peer + ICE/UDP-mux resources until new joins can't establish).
+	// Ping periodically; a live client auto-pongs and refreshes the read deadline,
+	// a dead one doesn't -> the deadline fires -> ReadMessage errors -> we clean up.
+	const pongWait = 60 * time.Second
+	const pingPeriod = 25 * time.Second
+	_ = unsafeConn.SetReadDeadline(time.Now().Add(pongWait))
+	unsafeConn.SetPongHandler(func(string) error {
+		return unsafeConn.SetReadDeadline(time.Now().Add(pongWait))
+	})
+	pingStop := make(chan struct{})
+	defer close(pingStop)
+	go func() {
+		ticker := time.NewTicker(pingPeriod)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-pingStop:
+				return
+			case <-ticker.C:
+				if err := c.Ping(time.Now().Add(10 * time.Second)); err != nil {
+					return
+				}
+			}
+		}
+	}()
+
 	// Create new PeerConnection
 	peerConnection, err := api.NewPeerConnection(webrtc.Configuration{})
 	if err != nil {
@@ -529,6 +557,13 @@ func (t *threadSafeWriter) WriteJSON(event string, v interface{}) error {
 		Event string `json:"event"`
 		Data  any    `json:"data"`
 	}{event, v})
+}
+
+// Ping sends a websocket ping under the write lock (concurrent-safe with WriteJSON).
+func (t *threadSafeWriter) Ping(deadline time.Time) error {
+	t.Lock()
+	defer t.Unlock()
+	return t.Conn.WriteControl(websocket.PingMessage, nil, deadline)
 }
 
 const html = ""
