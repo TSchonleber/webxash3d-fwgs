@@ -31,6 +31,10 @@ COPY --from=engine /xash/build/3rdparty/libbacktrace/libbacktrace.a ../github.co
 COPY --from=engine /xash/build/3rdparty/library_suffix/liblibrary_suffix.a ../github.com/yohimik/goxash3d-fwgs/pkg/liblibrary_suffix.a
 
 ENV GOARCH=386
+# Cross-compiling 386 on an amd64 host disables cgo by default, which would drop
+# the cgo binding files (net.go/host.go/launcher.go) and leave Addr/Packet/
+# Xash3DNetwork undefined. Force cgo on so the engine bindings compile.
+ENV CGO_ENABLED=1
 ENV CC="gcc -m32 -D__i386__"
 ENV CGO_CFLAGS="-fopenmp -m32 -fno-ipa-cp"
 ENV CGO_LDFLAGS="-fopenmp -m32"
