@@ -3,6 +3,19 @@ import xashURL from 'xash3d-fwgs/xash.wasm?url'
 import gl4esURL from 'xash3d-fwgs/libref_webgl2.wasm?url'
 import {Xash3DWebRTC} from "./webrtc";
 
+// The in-game menu is now the native ChainStrike mainui (compiled into
+// menu_emscripten_wasm32.wasm). Its "Quit to Lobby" button can't navigate the
+// browser from inside the wasm sandbox, so it emits the token below (and then
+// quits, firing onExit). Either signal redirects the page here.
+const LOBBY_URL = 'https://54.39.97.84.sslip.io'
+const QUIT_TOKEN = '__CS_QUIT_LOBBY__'
+let leavingToLobby = false
+function goToLobby() {
+    if (leavingToLobby) return
+    leavingToLobby = true
+    window.location.href = LOBBY_URL
+}
+
 const touchControls = document.getElementById('touchControls') as HTMLInputElement
 touchControls.addEventListener('change', () => {
     localStorage.setItem('touchControls', String(touchControls.checked))
@@ -79,6 +92,14 @@ async function main() {
         },
         dynamicLibraries: config.dynamic_libraries,
         filesMap: config.files_map,
+        module: {
+            // native "Quit to Lobby" -> echo token; catch it in console output
+            print: (text: string) => {
+                if (typeof text === 'string' && text.includes(QUIT_TOKEN)) goToLobby()
+            },
+            // fallback: engine quit tears down the runtime -> redirect anyway
+            onExit: () => goToLobby(),
+        },
     });
 
     const [zip, extras] = await Promise.all([
@@ -138,38 +159,17 @@ async function main() {
         setTimeout(() => x.Cmd_ExecuteString('spectate'), 6000)
     }
 
-    // mask the engine main menu during the connect window
+    // hide the load splash once we've dropped into the match. The in-game
+    // menu (ESC) is now handled entirely by the native ChainStrike mainui.
     setTimeout(() => {
         const c = document.getElementById('connecting')
         if (c) { c.style.opacity = '0'; setTimeout(() => { c.style.display = 'none' }, 600) }
     }, 7000)
 
-    // custom ESC menu (Resume / Options / Quit) layered over the engine menu
-    const canvas = document.getElementById('canvas') as HTMLCanvasElement
-    const esc = document.getElementById('escMenu')!
-    document.addEventListener('pointerlockchange', () => {
-        if (!document.pointerLockElement) esc.style.display = 'flex'
-    })
-    document.getElementById('escResume')!.addEventListener('click', () => {
-        esc.style.display = 'none'
-        x.Cmd_ExecuteString('escape')
-        canvas.requestPointerLock?.()
-    })
-    document.getElementById('escOptionsBtn')!.addEventListener('click', () => {
-        const o = document.getElementById('escOptions')!
-        o.style.display = o.style.display === 'block' ? 'none' : 'block'
-    })
-    document.getElementById('escSens')!.addEventListener('input', (e) => {
-        x.Cmd_ExecuteString('sensitivity ' + (e.target as HTMLInputElement).value)
-    })
-    document.getElementById('escVol')!.addEventListener('input', (e) => {
-        x.Cmd_ExecuteString('volume ' + (e.target as HTMLInputElement).value)
-    })
-    document.getElementById('escQuit')!.addEventListener('click', () => {
-        window.location.href = 'https://54.39.97.84.sslip.io'
-    })
-
+    // Guard accidental tab-close, but let an intentional "Quit to Lobby"
+    // (which sets leavingToLobby) navigate away without a prompt.
     window.addEventListener('beforeunload', (event) => {
+        if (leavingToLobby) return
         event.preventDefault();
         event.returnValue = '';
         return '';

@@ -72,6 +72,12 @@
   .m-live{ display:inline-flex; align-items:center; gap:7px; font-family:'Spline Sans Mono'; font-size:11px; color:var(--mag); letter-spacing:1px }
   .m-live .dot{ width:7px; height:7px; border-radius:50%; background:var(--mag); box-shadow:0 0 8px var(--mag); animation:pulse 1.4s infinite }
   .m-map{ color:var(--mut); font-size:14px; margin:8px 0 18px; font-family:'Spline Sans Mono' }
+  .m-meta{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:11px 0 18px }
+  .m-chip{ font-family:'Spline Sans Mono'; font-size:12px; padding:4px 9px; border-radius:6px; letter-spacing:.5px; line-height:1 }
+  .m-mapchip{ background:rgba(198,255,61,.12); color:var(--lime); border:1px solid rgba(198,255,61,.35); font-weight:700; text-transform:uppercase }
+  .m-modechip{ background:rgba(255,255,255,.04); color:var(--mut); border:1px solid var(--line) }
+  .m-modechip.dm{ background:var(--lime); color:var(--ink); border-color:var(--lime); font-weight:800; text-transform:uppercase }
+  .m-slots{ color:var(--mut); font-size:12px; font-family:'Spline Sans Mono'; margin-left:auto }
   .m-btns{ display:flex; gap:10px }
   .m-btns a{ flex:1; text-align:center; font-family:'Oxanium'; font-weight:800; font-size:14px; padding:11px 0; border-radius:10px }
   .m-play{ color:#0a0f04; background:linear-gradient(180deg,var(--lime),var(--lime2)) }
@@ -114,27 +120,27 @@
     <div class="match-grid">
       <div class="match card">
         <div class="m-top"><span class="m-name">Vault Raid</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
-        <div class="m-map">de_dust2 · 16 slots</div>
+        <div class="m-meta"><span class="m-chip m-mapchip">de_dust2</span><span class="m-chip m-modechip">Round-based</span><span class="m-slots">16 slots</span></div>
         <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27016" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27016/?spectate" target="_blank">Spectate</a></div>
       </div>
       <div class="match card">
         <div class="m-top"><span class="m-name">Hashpoint</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
-        <div class="m-map">de_inferno · 16 slots</div>
+        <div class="m-meta"><span class="m-chip m-mapchip">de_inferno</span><span class="m-chip m-modechip">Round-based</span><span class="m-slots">16 slots</span></div>
         <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27116" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27116/?spectate" target="_blank">Spectate</a></div>
       </div>
       <div class="match card">
         <div class="m-top"><span class="m-name">Degen Dust</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
-        <div class="m-map">de_aztec · 16 slots</div>
+        <div class="m-meta"><span class="m-chip m-mapchip">de_aztec</span><span class="m-chip m-modechip">Round-based</span><span class="m-slots">16 slots</span></div>
         <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27216" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27216/?spectate" target="_blank">Spectate</a></div>
       </div>
       <div class="match card">
         <div class="m-top"><span class="m-name">Cold Storage</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
-        <div class="m-map">de_nuke · 16 slots</div>
+        <div class="m-meta"><span class="m-chip m-mapchip">de_nuke</span><span class="m-chip m-modechip dm">⚡ Deathmatch</span><span class="m-slots">16 slots</span></div>
         <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27316" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27316/?spectate" target="_blank">Spectate</a></div>
       </div>
       <div class="match card">
         <div class="m-top"><span class="m-name">Liquidation</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
-        <div class="m-map">de_train · 16 slots</div>
+        <div class="m-meta"><span class="m-chip m-mapchip">de_train</span><span class="m-chip m-modechip dm">⚡ Deathmatch</span><span class="m-slots">16 slots</span></div>
         <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27416" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27416/?spectate" target="_blank">Spectate</a></div>
       </div>
     </div>
