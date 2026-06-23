@@ -16,6 +16,11 @@ const RPC = process.env.RPC_URL || "https://api.devnet.solana.com";
 
 const PROGRAM = new PublicKey(process.env.DISTRIBUTOR_PROGRAM_ID || "6jSjkNJg2ap9Mxmj6prQ7bEnBQsSWvf6t5p5vWLBzSx4");
 const [VAULT] = PublicKey.findProgramAddressSync([Buffer.from("vault")], PROGRAM);
+// The displayed prize pool reads the custodial treasury that funds payouts, so
+// the pool the players see == the wallet the operator funds == the wallet the
+// payout bot sends from. Falls back to the legacy distributor vault PDA only if
+// POOL_ADDRESS is unset. (Empty string is treated as unset to avoid PublicKey("").)
+const POOL = process.env.POOL_ADDRESS ? new PublicKey(process.env.POOL_ADDRESS) : VAULT;
 const conn = new Connection(RPC, "confirmed");
 const reader = rpcBalanceReader(conn);
 
@@ -31,7 +36,7 @@ const app = createApp({
   vaultLamports: BigInt(process.env.VAULT_LAMPORTS || "0"),
   budgetBps: Number(process.env.BUDGET_BPS || 1000),
   isEligible: (w) => (MINT ? isHoldEligible(reader, w, MINT, MIN_TOKENS) : Promise.resolve(true)),
-  poolReader: async () => ({ vaultAddress: VAULT.toBase58(), lamports: await conn.getBalance(VAULT) }),
+  poolReader: async () => ({ vaultAddress: POOL.toBase58(), lamports: await conn.getBalance(POOL) }),
   store,
 });
 
