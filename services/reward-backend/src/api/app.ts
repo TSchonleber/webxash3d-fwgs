@@ -59,33 +59,49 @@ export function createApp(deps: AppDeps) {
   // poll fast (to reflect a payout promptly) without hammering the RPC, and so a
   // transient RPC error serves the last good value instead of flapping to 0.
   let poolCache: { ts: number; data: { vaultAddress: string | null; lamports: number; sol: number; denom: string } | null } = { ts: 0, data: null };
+  let poolInflight: Promise<void> | null = null;
   app.get("/pool", async (c) => {
     if (!deps.poolReader) return c.json({ vaultAddress: null, lamports: 0, sol: 0, denom: "SOL" });
     if (poolCache.data && Date.now() - poolCache.ts < 5_000) return c.json(poolCache.data);
-    try {
-      const { vaultAddress, lamports } = await deps.poolReader();
-      const data = { vaultAddress, lamports, sol: lamports / 1e9, denom: "SOL" };
-      poolCache = { ts: Date.now(), data };
-      return c.json(data);
-    } catch {
-      if (poolCache.data) return c.json(poolCache.data);
-      return c.json({ vaultAddress: null, lamports: 0, sol: 0, denom: "SOL" });
+    // Single-flight: collapse concurrent cache-misses into ONE RPC call so a burst of
+    // clients (e.g. right after a restart, with an empty cache) can't stampede the RPC
+    // into 429 rate-limits — which previously starved /resolve and emptied the board.
+    if (!poolInflight) {
+      poolInflight = (async () => {
+        try {
+          const { vaultAddress, lamports } = await deps.poolReader!();
+          poolCache = { ts: Date.now(), data: { vaultAddress, lamports, sol: lamports / 1e9, denom: "SOL" } };
+        } catch {
+          /* keep last-good cache */
+        } finally {
+          poolInflight = null;
+        }
+      })();
     }
+    await poolInflight;
+    return c.json(poolCache.data ?? { vaultAddress: null, lamports: 0, sol: 0, denom: "SOL" });
   });
 
   // Recent on-chain payouts from the treasury, for a public transparency page.
   // Cached 25s so the payout list reflects promptly without hammering the RPC.
   let payoutsCache: { ts: number; data: unknown } = { ts: 0, data: [] };
+  let payoutsInflight: Promise<void> | null = null;
   app.get("/payouts", async (c) => {
     if (!deps.payoutsReader) return c.json([]);
-    if (Date.now() - payoutsCache.ts < 25_000) return c.json(payoutsCache.data);
-    try {
-      const data = await deps.payoutsReader();
-      payoutsCache = { ts: Date.now(), data };
-      return c.json(data);
-    } catch {
-      return c.json(payoutsCache.data);
+    if (payoutsCache.ts && Date.now() - payoutsCache.ts < 25_000) return c.json(payoutsCache.data);
+    if (!payoutsInflight) {
+      payoutsInflight = (async () => {
+        try {
+          payoutsCache = { ts: Date.now(), data: await deps.payoutsReader!() };
+        } catch {
+          /* keep last-good */
+        } finally {
+          payoutsInflight = null;
+        }
+      })();
     }
+    await payoutsInflight;
+    return c.json(payoutsCache.data);
   });
 
   app.post("/results", async (c) => {
