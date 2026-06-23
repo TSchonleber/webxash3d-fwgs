@@ -33,10 +33,26 @@ const blockConsoleKey = (e: KeyboardEvent) => {
 window.addEventListener('keydown', blockConsoleKey, true)
 window.addEventListener('keyup', blockConsoleKey, true)
 
+const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints ?? 0) > 0
+
 const touchControls = document.getElementById('touchControls') as HTMLInputElement
+// Default on-screen controls ON for touch devices (off only if the player opted out before).
+touchControls.checked = isTouchDevice ? localStorage.getItem('touchControls') !== 'false' : localStorage.getItem('touchControls') === 'true'
 touchControls.addEventListener('change', () => {
     localStorage.setItem('touchControls', String(touchControls.checked))
 })
+
+// Mobile is landscape-first: on the first tap, go fullscreen and (where supported)
+// lock to landscape. iOS ignores orientation.lock — the #rotate prompt covers that.
+if (isTouchDevice) {
+    const goLandscape = () => {
+        const el = document.documentElement as HTMLElement & { requestFullscreen?: () => Promise<void> }
+        Promise.resolve(el.requestFullscreen?.())
+            .then(() => (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> })?.lock?.('landscape'))
+            .catch(() => { /* unsupported (iOS) — rotate prompt handles it */ })
+    }
+    window.addEventListener('touchend', goLandscape, { once: true })
+}
 
 let usernamePromiseResolve: (name: string) => void
 const usernamePromise = new Promise<string>(resolve => {
@@ -154,7 +170,7 @@ async function main() {
 
     const username = await usernamePromise
     x.main()
-    if (touchControls.checked) {
+    if (touchControls.checked || isTouchDevice) {
         x.Cmd_ExecuteString('touch_enable 1')
     }
     x.Cmd_ExecuteString(`name "${username}"`)
