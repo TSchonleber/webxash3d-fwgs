@@ -757,8 +757,9 @@ func init() {
 	}
 }
 
-// maxPlayers must match the engine's +maxplayers (see the container CMD).
-const maxPlayers = 30
+// maxPlayers must match the engine's +maxplayers; set via MAX_PLAYERS env per
+// instance (default 15) so /players reports the right capacity for load-balancing.
+var maxPlayers = 15
 
 // playersHandler reports the live connected count vs capacity so the client can
 // show a join queue when the match is full. Uses the activePlayers atomic counter
@@ -797,6 +798,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func runSFU() {
+	// Per-instance match size for /players (must match the engine +maxplayers).
+	if v := os.Getenv("MAX_PLAYERS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			maxPlayers = n
+		}
+	}
 	// Prime + refill the connection rate-limit token bucket (~20/sec, burst 30).
 	for i := 0; i < cap(connTokens); i++ {
 		connTokens <- struct{}{}
