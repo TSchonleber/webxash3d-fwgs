@@ -2,6 +2,41 @@ package oracle
 
 import "testing"
 
+// A logsidecar restart uses `docker logs -f --tail 0`, so it misses the enter
+// lines of players already in the match. Their identity must still be recoverable
+// from KILL lines (which carry the name), or their kills are dropped until they
+// happen to rejoin — which is what froze the live board on 2026-06-23.
+func TestRunnerCapturesPlayerSeenOnlyInKillLine(t *testing.T) {
+	posted := []MatchResult{}
+	r := NewMatchRunner(
+		func(uid int, name string) (string, bool) {
+			m := map[string]string{"niko": "Wn", "victim": "Wv"}
+			w, ok := m[name]
+			return w, ok
+		},
+		func(res MatchResult) error { posted = append(posted, res); return nil },
+	)
+	// No enter lines at all — exactly the post-restart, mid-match state.
+	r.Feed(`L d: "niko<7><id><CT>" killed "victim<8><id><TERRORIST>" with "ak47"`)
+	r.Finalize("m", 1)
+
+	var niko, victim *MatchPlayer
+	for i := range posted[0].Players {
+		switch posted[0].Players[i].Wallet {
+		case "Wn":
+			niko = &posted[0].Players[i]
+		case "Wv":
+			victim = &posted[0].Players[i]
+		}
+	}
+	if niko == nil || niko.Kills != 1 {
+		t.Fatalf("killer not captured from kill line: %+v", posted[0].Players)
+	}
+	if victim == nil || victim.Deaths != 1 {
+		t.Fatalf("victim not captured from kill line: %+v", posted[0].Players)
+	}
+}
+
 func TestRunnerFinalizePostsResolvedResult(t *testing.T) {
 	posted := []MatchResult{}
 	r := NewMatchRunner(
