@@ -103,14 +103,6 @@ export class Xash3DWebRTC extends Xash3D {
         this.handleDescription()
     }
 
-    private async getUserMedia() {
-        try {
-            return await navigator.mediaDevices.getUserMedia({audio: true})
-        } catch (e) {
-            return undefined
-        }
-    }
-
     private wsSend(event: string, data: unknown) {
         const msg = JSON.stringify({
             event,

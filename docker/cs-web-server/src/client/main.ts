@@ -33,6 +33,19 @@ const blockConsoleKey = (e: KeyboardEvent) => {
 window.addEventListener('keydown', blockConsoleKey, true)
 window.addEventListener('keyup', blockConsoleKey, true)
 
+// Voice chat is disabled, but the engine (and iOS) can still pop a "use your
+// microphone" prompt during init. Intercept audio-only getUserMedia and reject it
+// so the prompt never appears — gameplay needs no mic.
+if (navigator.mediaDevices?.getUserMedia) {
+    const realGUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
+    navigator.mediaDevices.getUserMedia = (constraints?: MediaStreamConstraints) => {
+        if (constraints && constraints.audio && !constraints.video) {
+            return Promise.reject(new DOMException('microphone disabled', 'NotAllowedError'))
+        }
+        return realGUM(constraints)
+    }
+}
+
 // Mobile audio unlock: browsers start every AudioContext suspended until a user
 // gesture, and our control overlay can starve the engine's own unlock. Patch the
 // constructor (before the engine creates its context) to capture instances, then
@@ -338,6 +351,7 @@ async function main() {
     // Audio: ensure not muted, and resume the engine's own SDL audio context on a
     // user gesture (the generic AudioContext patch may not catch the engine's one).
     x.Cmd_ExecuteString('volume 1')
+    x.Cmd_ExecuteString('voice_enable 0')   // client voice off — no mic needed
     type Ctx = { resume?: () => void }
     const em = (x as unknown as { em?: { SDL2?: { audioContext?: Ctx }, SDL3?: { audioContext?: Ctx } } }).em
     const resumeEngineAudio = () => { try { em?.SDL2?.audioContext?.resume?.(); em?.SDL3?.audioContext?.resume?.() } catch { /* */ } }
