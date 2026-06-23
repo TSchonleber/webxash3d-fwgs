@@ -94,6 +94,12 @@
                 background:rgba(255,46,136,.16); border:2px solid rgba(255,46,136,.75); color:var(--txt);
                 font-family:'Oxanium',sans-serif; font-weight:800; font-size:15px; letter-spacing:1px }
         #mfire:active{ background:rgba(255,46,136,.34) }
+        /* tap action buttons (top-right) */
+        #mtop{ position:fixed; top:12px; right:12px; display:flex; gap:10px }
+        .mbtn{ min-width:64px; height:40px; display:flex; align-items:center; justify-content:center;
+               background:rgba(255,255,255,.06); border:1px solid rgba(198,255,61,.45); color:var(--txt);
+               border-radius:10px; font-family:'Oxanium',sans-serif; font-weight:800; font-size:12px; letter-spacing:1px }
+        .mbtn:active{ background:rgba(198,255,61,.22) }
     </style>
 </head>
 <body>
@@ -113,7 +119,7 @@
         <button type="button" id="spectate">SPECTATE</button>
     </div>
 </form>
-<p id="warning" class="notDraggable">If it's not starting, enable your microphone and refresh.</p>
+<p id="warning" class="notDraggable">Trouble connecting? Reload to retry.</p>
 <div id="connecting">
     <img src="logo.png" alt=""/>
     <div class="ct">DROPPING INTO THE SERVER</div>
@@ -128,6 +134,10 @@
 <div id="mctl" hidden>
     <div id="mlook"></div>
     <div id="mpad"><div id="mnub"></div></div>
+    <div id="mtop">
+        <div id="mswap" class="mbtn">SWAP</div>
+        <div id="mdrop" class="mbtn">DROP</div>
+    </div>
     <div id="mfire">FIRE</div>
 </div>
 </body>

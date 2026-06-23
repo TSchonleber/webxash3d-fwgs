@@ -155,12 +155,13 @@ function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }) {
     // Mouse injection doesn't reach the engine, so use the keyboard-look commands
     // (+left/+right/+lookup/+lookdown) — same path move uses. Joystick-style: hold
     // the drag off-center to keep turning; release to stop.
-    x.Cmd_ExecuteString('cl_yawspeed 280')
-    x.Cmd_ExecuteString('cl_pitchspeed 240')
     const clearLook = () => ['left', 'right', 'lookup', 'lookdown'].forEach((c) => set(c, false))
     let lookId: number | null = null, lsx = 0, lsy = 0
     const lookMove = (cx: number, cy: number) => {
-        const dx = cx - lsx, dy = cy - lsy, dz = 16
+        const dx = cx - lsx, dy = cy - lsy, dz = 12
+        // proportional turn speed — gentle near center, faster the further you drag
+        x.Cmd_ExecuteString('cl_yawspeed ' + Math.min(200, Math.round(Math.abs(dx) * 0.85)))
+        x.Cmd_ExecuteString('cl_pitchspeed ' + Math.min(160, Math.round(Math.abs(dy) * 0.8)))
         set('right', dx > dz); set('left', dx < -dz)
         set('lookup', dy < -dz); set('lookdown', dy > dz)
     }
@@ -168,6 +169,13 @@ function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }) {
     look.addEventListener('pointermove', (e) => { if (e.pointerId === lookId) { e.preventDefault(); lookMove(e.clientX, e.clientY) } })
     const lookEnd = (e: PointerEvent) => { if (e.pointerId === lookId) { lookId = null; clearLook() } }
     look.addEventListener('pointerup', lookEnd); look.addEventListener('pointercancel', lookEnd)
+
+    // ---- tap action buttons ----
+    const tap = (id: string, cmd: string) => {
+        document.getElementById(id)?.addEventListener('pointerdown', (e) => { e.preventDefault(); x.Cmd_ExecuteString(cmd) })
+    }
+    tap('mswap', 'invnext')   // cycle to next weapon
+    tap('mdrop', 'drop')      // drop current weapon
 }
 
 async function main() {
@@ -256,6 +264,14 @@ async function main() {
     } else if (touchControls.checked) {
         x.Cmd_ExecuteString('touch_enable 1')
     }
+
+    // Audio: ensure not muted, and resume the engine's own SDL audio context on a
+    // user gesture (the generic AudioContext patch may not catch the engine's one).
+    x.Cmd_ExecuteString('volume 1')
+    type Ctx = { resume?: () => void }
+    const em = (x as unknown as { em?: { SDL2?: { audioContext?: Ctx }, SDL3?: { audioContext?: Ctx } } }).em
+    const resumeEngineAudio = () => { try { em?.SDL2?.audioContext?.resume?.(); em?.SDL3?.audioContext?.resume?.() } catch { /* */ } }
+    for (const ev of ['pointerdown', 'touchend', 'click']) window.addEventListener(ev, resumeEngineAudio)
     x.Cmd_ExecuteString(`name "${username}"`)
     
     // Execute custom server commands
