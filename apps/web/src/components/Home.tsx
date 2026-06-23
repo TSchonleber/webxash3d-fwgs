@@ -143,7 +143,7 @@ export function Home() {
                 <span className="hb-rank">{String(i + 1).padStart(2, "0")}</span>
                 <span className="hb-name">
                   <span className="hb-who">{shortWallet(e.wallet)}</span>
-                  <small className="hb-sub">{e.kills}K / {e.deaths}D · {e.kd} K/D · {e.winPct}% W{e.bestStreak ? ` · ${e.bestStreak} streak` : ""}</small>
+                  <small className="hb-sub">{e.kills}K / {e.deaths}D · {e.kd} K/D · {e.winPct}% W{e.accuracy ? ` · ${e.accuracy}% ACC` : ""}{e.bestStreak ? ` · ${e.bestStreak} streak` : ""}</small>
                 </span>
                 <span className="hb-kills">{e.score}<i> PTS</i></span>
               </li>

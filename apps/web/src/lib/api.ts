@@ -1,7 +1,7 @@
 export interface RankedEntry { wallet: string; kills: number; deaths: number; matches: number; rank: number; }
 export interface DailyEntry {
   wallet: string; kills: number; deaths: number; kd: number;
-  headshots: number; hsPct: number; bestStreak: number;
+  headshots: number; hsPct: number; accuracy: number; bestStreak: number;
   wins: number; matches: number; winPct: number; score: number; rank: number;
 }
 export interface ClaimData { periodId: number; index: number; amount: string; proof: string[]; }

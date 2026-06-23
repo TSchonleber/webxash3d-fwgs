@@ -8,6 +8,7 @@ export interface DailyEntry {
   kd: number;            // kills/deaths (kills if 0 deaths)
   headshots: number;
   hsPct: number;         // headshots/kills %  (0 until the oracle captures HS — phase 2)
+  accuracy: number;      // shotsHit/shotsFired %  (0 until the oracle captures shots — phase 2)
   bestStreak: number;    // longest kills-without-dying streak in the day
   wins: number;          // matches finished top-fragger
   matches: number;
@@ -20,6 +21,8 @@ interface Agg {
   kills: number;
   deaths: number;
   headshots: number;
+  shotsFired: number;
+  shotsHit: number;
   wins: number;
   matches: number;
   bestStreak: number;
@@ -27,12 +30,19 @@ interface Agg {
 
 /**
  * Weighted skill score (tunable) — the daily ranking metric. Rewards fragging,
- * winning lobbies, and kill streaks; penalizes dying. The headshot term stays at
- * 0 until the oracle starts capturing headshots (phase 2), at which point it lights
- * up automatically with no further changes here.
+ * winning lobbies, kill streaks, and precision (headshots + shot accuracy);
+ * penalizes dying. The headshot and accuracy terms stay at 0 until the oracle
+ * starts capturing hit data (phase 2), at which point they light up automatically
+ * with no further changes here.
  */
-export function skillScore(a: Pick<Agg, "kills" | "deaths" | "wins" | "bestStreak" | "headshots">): number {
-  return Math.max(0, a.kills + 2 * a.wins + 0.5 * a.bestStreak + 0.5 * a.headshots - 0.5 * a.deaths);
+export function skillScore(
+  a: Pick<Agg, "kills" | "deaths" | "wins" | "bestStreak" | "headshots" | "shotsFired" | "shotsHit">,
+): number {
+  const accPct = a.shotsFired > 0 ? (100 * a.shotsHit) / a.shotsFired : 0;
+  return Math.max(
+    0,
+    a.kills + 2 * a.wins + 0.5 * a.bestStreak + 0.5 * a.headshots + 0.1 * accPct - 0.5 * a.deaths,
+  );
 }
 
 /**
@@ -51,10 +61,12 @@ export function rankDaily(matches: MatchResult[], top = 10): DailyEntry[] {
       if (p.kills > maxKills) { maxKills = p.kills; winner = p.wallet; }
     }
     for (const p of players) {
-      const a = agg.get(p.wallet) ?? { kills: 0, deaths: 0, headshots: 0, wins: 0, matches: 0, bestStreak: 0 };
+      const a = agg.get(p.wallet) ?? { kills: 0, deaths: 0, headshots: 0, shotsFired: 0, shotsHit: 0, wins: 0, matches: 0, bestStreak: 0 };
       a.kills += p.kills;
       a.deaths += p.deaths;
       a.headshots += p.headshots ?? 0;
+      a.shotsFired += p.shotsFired ?? 0;
+      a.shotsHit += p.shotsHit ?? 0;
       a.matches += 1;
       a.bestStreak = Math.max(a.bestStreak, p.bestStreak ?? 0);
       if (p.wallet === winner) a.wins += 1;
@@ -71,6 +83,7 @@ export function rankDaily(matches: MatchResult[], top = 10): DailyEntry[] {
     matches: a.matches,
     kd: a.deaths ? Number((a.kills / a.deaths).toFixed(2)) : a.kills,
     hsPct: a.kills ? Math.round((100 * a.headshots) / a.kills) : 0,
+    accuracy: a.shotsFired ? Math.round((100 * a.shotsHit) / a.shotsFired) : 0,
     winPct: a.matches ? Math.round((100 * a.wins) / a.matches) : 0,
     score: Number(skillScore(a).toFixed(1)),
   }));
