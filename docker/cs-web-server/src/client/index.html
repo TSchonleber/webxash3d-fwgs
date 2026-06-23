@@ -67,6 +67,15 @@
         #connecting img{ width:120px; height:120px; border-radius:26px; filter:drop-shadow(0 0 30px rgba(166,229,0,.55)); animation:pulsate 2.2s ease-in-out infinite }
         #connecting .ct{ margin-top:22px; font-family:'Oxanium'; font-weight:800; letter-spacing:2px; color:var(--lime) }
         #connecting .cs{ margin-top:6px; color:var(--mut); font-size:14px; font-family:'Spline Sans Mono',monospace }
+
+        /* landscape-first on mobile: cover portrait with a rotate prompt */
+        #rotate{ position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center;
+                 flex-direction:column; gap:16px; text-align:center; padding:32px; background:var(--ink); color:var(--txt) }
+        #rotate .ico{ font-size:48px; line-height:1; animation:rot 2.4s ease-in-out infinite }
+        #rotate .rt{ font-family:'Oxanium'; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:var(--lime); font-size:18px }
+        #rotate .rs{ color:var(--mut); font-family:'Spline Sans Mono',monospace; font-size:13px }
+        @keyframes rot{ 0%,100%{ transform:rotate(-12deg) } 50%{ transform:rotate(78deg) } }
+        @media (orientation:portrait) and (pointer:coarse){ #rotate{ display:flex } }
     </style>
 </head>
 <body>
@@ -91,6 +100,11 @@
     <img src="logo.png" alt=""/>
     <div class="ct">DROPPING INTO THE SERVER</div>
     <div class="cs">establishing secure match link…</div>
+</div>
+<div id="rotate">
+    <div class="ico">⟳</div>
+    <div class="rt">Rotate your device</div>
+    <div class="rs">ChainStrike plays in landscape</div>
 </div>
 </body>
 </html>

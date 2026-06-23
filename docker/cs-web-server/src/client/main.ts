@@ -38,6 +38,19 @@ touchControls.addEventListener('change', () => {
     localStorage.setItem('touchControls', String(touchControls.checked))
 })
 
+// Landscape-first on mobile: on the first tap, go fullscreen and (where supported)
+// lock to landscape. iOS Safari ignores orientation.lock — the #rotate prompt
+// (CSS, portrait only) covers that. Pure UX; does not touch the game transport.
+if (window.matchMedia('(pointer: coarse)').matches) {
+    const lockLandscape = () => {
+        const el = document.documentElement as HTMLElement & { requestFullscreen?: () => Promise<void> }
+        Promise.resolve(el.requestFullscreen?.())
+            .then(() => (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> })?.lock?.('landscape'))
+            .catch(() => { /* unsupported — rotate prompt handles it */ })
+    }
+    window.addEventListener('touchend', lockLandscape, { once: true })
+}
+
 let usernamePromiseResolve: (name: string) => void
 const usernamePromise = new Promise<string>(resolve => {
     usernamePromiseResolve = resolve
