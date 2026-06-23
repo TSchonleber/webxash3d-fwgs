@@ -47,7 +47,6 @@ for (const key of ['AudioContext', 'webkitAudioContext'] as const) {
 }
 const resumeAudio = () => { for (const c of audioCtxs) if (c.state === 'suspended') c.resume().catch(() => {}) }
 for (const ev of ['touchend', 'pointerup', 'click']) window.addEventListener(ev, resumeAudio)
-;(window as unknown as Record<string, unknown>).__ctxs = audioCtxs  // debug: inspect audio context state
 
 const touchControls = document.getElementById('touchControls') as HTMLInputElement
 touchControls.addEventListener('change', () => {
@@ -113,14 +112,17 @@ async function fetchWithProgress(url: string) {
 // Lightweight DOM controls (move pad + look + fire). Inputs go through the engine's
 // +/- button commands — no textures to load (no OOM), transport untouched. Uses
 // Pointer Events so it works with touch (phone) AND mouse (desktop demo).
-function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }) {
+let touchWired = false
+function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }): boolean {
     const mctl = document.getElementById('mctl')
+    if (mctl) mctl.hidden = false              // always reveal the overlay if present
+    if (touchWired) return true                 // wire the handlers only once
     const pad = document.getElementById('mpad')
     const nub = document.getElementById('mnub')
     const fire = document.getElementById('mfire')
     const look = document.getElementById('mlook')
-    if (!mctl || !pad || !nub || !fire || !look) return
-    mctl.hidden = false
+    if (!mctl || !pad || !nub || !fire || !look) return false   // not ready — caller retries
+    touchWired = true
 
     const active = new Set<string>()
     const set = (cmd: string, on: boolean) => {
@@ -152,24 +154,21 @@ function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }) {
     fire.addEventListener('pointerdown', (e) => { e.preventDefault(); fire.setPointerCapture(e.pointerId); x.Cmd_ExecuteString('+attack') })
     fire.addEventListener('pointerup', fireUp); fire.addEventListener('pointercancel', fireUp); fire.addEventListener('pointerleave', fireUp)
 
-    // ---- look/aim (right-side drag) → native 1:1 mouse-look ----
-    // SDL reads absolute-mode position deltas from canvas mousemove events, so we
-    // keep a virtual cursor and offset it by the finger's movement. True 1:1 aiming
-    // (smooth, like a desktop mouse) instead of rate-based keyboard turning.
-    const canvas = document.getElementById('canvas') as HTMLCanvasElement
-    const LOOK_SENS = 4
-    let vmx = Math.round(window.innerWidth / 2), vmy = Math.round(window.innerHeight / 2)
-    let lookId: number | null = null, lpx = 0, lpy = 0
-    look.addEventListener('pointerdown', (e) => { e.preventDefault(); lookId = e.pointerId; look.setPointerCapture(e.pointerId); lpx = e.clientX; lpy = e.clientY })
-    look.addEventListener('pointermove', (e) => {
-        if (e.pointerId !== lookId) return
-        e.preventDefault()
-        const dx = (e.clientX - lpx) * LOOK_SENS, dy = (e.clientY - lpy) * LOOK_SENS
-        lpx = e.clientX; lpy = e.clientY
-        vmx += dx; vmy += dy
-        canvas.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: vmx, clientY: vmy, movementX: dx, movementY: dy }))
-    })
-    const lookEnd = (e: PointerEvent) => { if (e.pointerId === lookId) lookId = null }
+    // ---- look/aim (right-side drag): joystick-style keyboard-look ----
+    // The model that worked — hold the drag off-center to keep turning that way,
+    // release to stop. Just less sensitive than before (cl_yawspeed 130 vs 280).
+    x.Cmd_ExecuteString('cl_yawspeed 130')
+    x.Cmd_ExecuteString('cl_pitchspeed 110')
+    const clearLook = () => ['left', 'right', 'lookup', 'lookdown'].forEach((c) => set(c, false))
+    let lookId: number | null = null, lsx = 0, lsy = 0
+    const lookMove = (cx: number, cy: number) => {
+        const dx = cx - lsx, dy = cy - lsy, dz = 16
+        set('right', dx > dz); set('left', dx < -dz)
+        set('lookup', dy < -dz); set('lookdown', dy > dz)
+    }
+    look.addEventListener('pointerdown', (e) => { e.preventDefault(); lookId = e.pointerId; look.setPointerCapture(e.pointerId); lsx = e.clientX; lsy = e.clientY })
+    look.addEventListener('pointermove', (e) => { if (e.pointerId === lookId) { e.preventDefault(); lookMove(e.clientX, e.clientY) } })
+    const lookEnd = (e: PointerEvent) => { if (e.pointerId === lookId) { lookId = null; clearLook() } }
     look.addEventListener('pointerup', lookEnd); look.addEventListener('pointercancel', lookEnd)
 
     // ---- tap action buttons ----
@@ -179,6 +178,28 @@ function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }) {
     tap('mswap', 'invnext')   // cycle to next weapon
     tap('mdrop', 'drop')      // drop current weapon
     document.getElementById('mquit')?.addEventListener('pointerdown', (e) => { e.preventDefault(); goToLobby() })
+
+    // ---- hold buttons (+cmd while pressed) ----
+    const hold = (id: string, cmd: string) => {
+        const el = document.getElementById(id); if (!el) return
+        const up = () => x.Cmd_ExecuteString('-' + cmd)
+        el.addEventListener('pointerdown', (e) => { e.preventDefault(); el.setPointerCapture((e as PointerEvent).pointerId); x.Cmd_ExecuteString('+' + cmd) })
+        el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('pointerleave', up)
+    }
+    hold('mjump', 'jump')
+    hold('mcrouch', 'duck')
+    hold('mreload', 'reload')
+    hold('malt', 'attack2')   // right-click: silencer / zoom / burst depending on weapon
+
+    // ---- sound toggle ----
+    let muted = false
+    const snd = document.getElementById('msound')
+    snd?.addEventListener('pointerdown', (e) => {
+        e.preventDefault()
+        muted = !muted
+        x.Cmd_ExecuteString('volume ' + (muted ? '0' : '1'))
+        snd.textContent = muted ? 'MUTED' : 'SND'
+    })
 }
 
 async function main() {
@@ -263,7 +284,12 @@ async function main() {
     // loads a button texture set that OOMs low-memory phones. Desktop = kbd+mouse.
     const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints ?? 0) > 0
     if (isTouchDevice) {
-        setupTouchControls(x)
+        // Retry until the overlay elements are present and wired — the engine can
+        // touch the DOM during init, so a single attempt can land too early.
+        if (!setupTouchControls(x)) {
+            const t = setInterval(() => { if (setupTouchControls(x)) clearInterval(t) }, 400)
+            setTimeout(() => clearInterval(t), 10000)
+        }
     } else if (touchControls.checked) {
         x.Cmd_ExecuteString('touch_enable 1')
     }
@@ -275,6 +301,26 @@ async function main() {
     const em = (x as unknown as { em?: { SDL2?: { audioContext?: Ctx }, SDL3?: { audioContext?: Ctx } } }).em
     const resumeEngineAudio = () => { try { em?.SDL2?.audioContext?.resume?.(); em?.SDL3?.audioContext?.resume?.() } catch { /* */ } }
     for (const ev of ['pointerdown', 'touchend', 'click']) window.addEventListener(ev, resumeEngineAudio)
+
+    // iOS mutes WebAudio under the ringer switch unless an HTMLMediaElement has
+    // played (which flips the audio session to 'playback'). Play a silent clip on
+    // the first gesture so game audio is audible even with the switch on.
+    const unlockIOS = () => {
+        try {
+            const a = document.createElement('audio')
+            a.setAttribute('playsinline', ''); a.loop = true
+            const rate = 8000, n = Math.floor(rate * 0.3), b = new ArrayBuffer(44 + n * 2), v = new DataView(b)
+            const w = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)) }
+            w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true)
+            v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true)
+            v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true)
+            let s = ''; const u = new Uint8Array(b); for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i])
+            a.src = 'data:audio/wav;base64,' + btoa(s)
+            void a.play().catch(() => {})
+        } catch { /* */ }
+        window.removeEventListener('touchend', unlockIOS); window.removeEventListener('pointerdown', unlockIOS)
+    }
+    window.addEventListener('touchend', unlockIOS); window.addEventListener('pointerdown', unlockIOS)
     x.Cmd_ExecuteString(`name "${username}"`)
     
     // Execute custom server commands

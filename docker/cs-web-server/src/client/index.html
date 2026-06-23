@@ -99,6 +99,15 @@
                 background:rgba(255,255,255,.06); border:1px solid rgba(255,46,136,.55); color:var(--txt);
                 border-radius:10px; font-family:'Oxanium',sans-serif; font-weight:800; font-size:12px; letter-spacing:1px }
         #mquit:active{ background:rgba(255,46,136,.24) }
+        /* round game buttons (jump / crouch / reload) */
+        .gbtn{ position:fixed; width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+               background:rgba(255,255,255,.06); border:2px solid rgba(198,255,61,.5); color:var(--txt);
+               font-family:'Oxanium',sans-serif; font-weight:800; font-size:12px; letter-spacing:.5px }
+        .gbtn:active{ background:rgba(198,255,61,.22) }
+        #mjump{ right:140px; bottom:110px }
+        #mreload{ right:250px; bottom:110px }
+        #mcrouch{ right:140px; bottom:28px }
+        #malt{ right:250px; bottom:28px }
         /* tap action buttons (top-right) */
         #mtop{ position:fixed; top:12px; right:12px; display:flex; gap:10px }
         .mbtn{ min-width:64px; height:40px; display:flex; align-items:center; justify-content:center;
@@ -141,10 +150,15 @@
     <div id="mpad"><div id="mnub"></div></div>
     <div id="mquit">‹ LOBBY</div>
     <div id="mtop">
+        <div id="msound" class="mbtn">SND</div>
         <div id="mswap" class="mbtn">SWAP</div>
         <div id="mdrop" class="mbtn">DROP</div>
     </div>
     <div id="mfire">FIRE</div>
+    <div id="mreload" class="gbtn">RELOAD</div>
+    <div id="mjump" class="gbtn">JUMP</div>
+    <div id="mcrouch" class="gbtn">DUCK</div>
+    <div id="malt" class="gbtn">ALT</div>
 </div>
 </body>
 </html>
