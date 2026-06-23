@@ -323,4 +323,8 @@
   .hero { padding-bottom: var(--s6); gap: var(--s5); }
   .grid { margin-top: var(--s4); gap: var(--s4); }
   .game-overlay { padding: var(--s5); }
+  /* keep the brand + sign-in on one tidy row */
+  .home-bar { gap: var(--s3); }
+  .home-bar .brand, .topbar .brand { font-size: 16px; }
+  .home-signin { padding: 10px 16px; }
 }

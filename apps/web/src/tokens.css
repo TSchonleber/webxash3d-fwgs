@@ -125,6 +125,7 @@ button { font: inherit; color: inherit; }
   border: 1px solid var(--lime);
   border-radius: var(--r);
   cursor: pointer;
+  white-space: nowrap;
   transition: background var(--dur) var(--ease), transform var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .btn:hover { background: var(--lime-press); border-color: var(--lime-press); }
