@@ -26,7 +26,19 @@ export class Xash3DWebRTC extends Xash3D {
     }
 
     startConnection() {
-        const peer = new RTCPeerConnection()
+        // STUN + TURN so players behind symmetric NAT / UDP-blocking firewalls can
+        // still connect (they relay through coturn instead of hanging at "establishing
+        // secure match link"). TURN offered over UDP and TCP for restrictive networks.
+        const peer = new RTCPeerConnection({
+            iceServers: [
+                { urls: 'stun:54.39.97.84:3478' },
+                {
+                    urls: ['turn:54.39.97.84:3478?transport=udp', 'turn:54.39.97.84:3478?transport=tcp'],
+                    username: 'cs',
+                    credential: 'cs-turn-7f3a',
+                },
+            ],
+        })
         this.peer = peer
         peer.onicecandidate = e => {
             if (!e.candidate) {
