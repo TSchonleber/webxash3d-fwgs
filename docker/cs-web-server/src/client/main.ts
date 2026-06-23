@@ -385,22 +385,44 @@ async function main() {
         })
     }
     
-    // Drop straight into the configured session; retry in case the first
-    // connect fires before the engine has left the main menu.
+    // Join queue: the match caps at 30 players. Poll /players; if it's full, show
+    // the queue and auto-join the moment a slot opens. Retry the connect a couple
+    // times in case it fires before the engine has left the main menu.
     const joinServer = () => x.Cmd_ExecuteString('connect 127.0.0.1:8080')
-    joinServer()
-    setTimeout(joinServer, 2000)
-    setTimeout(joinServer, 5000)
-    if (spectateMode) {
-        setTimeout(() => x.Cmd_ExecuteString('spectate'), 6000)
+    const queueEl = document.getElementById('queue')
+    const queueCount = document.getElementById('queue-count')
+    const connectingEl = document.getElementById('connecting')
+    let joined = false
+    const doJoin = () => {
+        if (joined) return
+        joined = true
+        queueEl?.classList.remove('show')
+        if (connectingEl) { connectingEl.style.display = 'flex'; connectingEl.style.opacity = '1' }
+        joinServer()
+        setTimeout(joinServer, 2000)
+        setTimeout(joinServer, 5000)
+        if (spectateMode) setTimeout(() => x.Cmd_ExecuteString('spectate'), 6000)
+        // hide the load splash once we've dropped into the match
+        setTimeout(() => {
+            if (connectingEl) { connectingEl.style.opacity = '0'; setTimeout(() => { connectingEl.style.display = 'none' }, 600) }
+        }, 7000)
     }
-
-    // hide the load splash once we've dropped into the match. The in-game
-    // menu (ESC) is now handled entirely by the native ChainStrike mainui.
-    setTimeout(() => {
-        const c = document.getElementById('connecting')
-        if (c) { c.style.opacity = '0'; setTimeout(() => { c.style.display = 'none' }, 600) }
-    }, 7000)
+    const checkQueue = async () => {
+        if (joined) return
+        try {
+            const res = await fetch('/players', { cache: 'no-store' })
+            const { count, max } = (await res.json()) as { count: number; max: number }
+            if (count < max) { doJoin(); return }
+            // full — show the queue and keep polling
+            if (connectingEl) connectingEl.style.display = 'none'
+            queueEl?.classList.add('show')
+            if (queueCount) queueCount.textContent = `${count} / ${max} in match`
+        } catch {
+            doJoin(); return // if the count check fails, just try to connect
+        }
+        setTimeout(checkQueue, 3000)
+    }
+    checkQueue()
 
     // Guard accidental tab-close, but let an intentional "Quit to Lobby"
     // (which sets leavingToLobby) navigate away without a prompt.

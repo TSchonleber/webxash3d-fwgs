@@ -68,6 +68,15 @@
         #connecting .ct{ margin-top:22px; font-family:'Oxanium'; font-weight:800; letter-spacing:2px; color:var(--lime) }
         #connecting .cs{ margin-top:6px; color:var(--mut); font-size:14px; font-family:'Spline Sans Mono',monospace }
 
+        /* join queue (match full) */
+        #queue{ position:fixed; inset:0; z-index:9; display:none; flex-direction:column; align-items:center; justify-content:center;
+                gap:12px; text-align:center; padding:32px; background:rgba(7,9,11,.94); backdrop-filter:blur(8px); color:var(--txt) }
+        #queue.show{ display:flex }
+        #queue img{ width:108px; height:108px; border-radius:24px; animation:pulsate 2.2s ease-in-out infinite }
+        #queue .q-t{ font-family:'Oxanium',sans-serif; font-weight:800; letter-spacing:2px; color:var(--lime); font-size:20px; margin-top:16px }
+        #queue .q-s{ color:var(--mut); font-family:'Spline Sans Mono',monospace; font-size:14px; max-width:40ch; line-height:1.5 }
+        #queue .q-n{ font-family:'Spline Sans Mono',monospace; color:var(--txt); font-size:13px; margin-top:4px }
+
         /* pre-launch lock screen */
         #locked{ position:fixed; inset:0; z-index:30; display:none; flex-direction:column; align-items:center; justify-content:center;
                  gap:14px; text-align:center; padding:32px; background:var(--ink); color:var(--txt) }
@@ -169,6 +178,12 @@
     <img src="logo.png" alt=""/>
     <div class="ct">DROPPING INTO THE SERVER</div>
     <div class="cs">establishing secure match link…</div>
+</div>
+<div id="queue">
+    <img src="logo.png" alt=""/>
+    <div class="q-t">MATCH FULL</div>
+    <div class="q-s">waiting for an open slot — you'll drop in automatically</div>
+    <div class="q-n" id="queue-count"></div>
 </div>
 <div id="rotate">
     <div class="ico">⟳</div>

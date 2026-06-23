@@ -616,6 +616,20 @@ func init() {
 	}
 }
 
+// maxPlayers must match the engine's +maxplayers (see the container CMD).
+const maxPlayers = 30
+
+// playersHandler reports the live connected count vs capacity so the client can
+// show a join queue when the match is full.
+func playersHandler(w http.ResponseWriter, _ *http.Request) {
+	listLock.RLock()
+	count := len(peerConnections)
+	listLock.RUnlock()
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	_ = json.NewEncoder(w).Encode(map[string]int{"count": count, "max": maxPlayers})
+}
+
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !disabledXPoweredBy {
 		w.Header().Set("X-Powered-By", xPoweredByValue)
@@ -625,6 +639,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		websocketHandler(w, r)
 	case "/config":
 		configHandler(w, r)
+	case "/players":
+		playersHandler(w, r)
 	default:
 		p := r.URL.Path
 		if r.URL.Path == "/" {
