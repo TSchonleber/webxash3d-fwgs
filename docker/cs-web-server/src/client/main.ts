@@ -42,6 +42,7 @@ touchControls.addEventListener('change', () => {
 // lock to landscape. iOS Safari ignores orientation.lock — the #rotate prompt
 // (CSS, portrait only) covers that. Pure UX; does not touch the game transport.
 if (window.matchMedia('(pointer: coarse)').matches) {
+    const rotate = document.getElementById('rotate')
     const lockLandscape = () => {
         const el = document.documentElement as HTMLElement & { requestFullscreen?: () => Promise<void> }
         Promise.resolve(el.requestFullscreen?.())
@@ -49,6 +50,10 @@ if (window.matchMedia('(pointer: coarse)').matches) {
             .catch(() => { /* unsupported — rotate prompt handles it */ })
     }
     window.addEventListener('touchend', lockLandscape, { once: true })
+    // The prompt is never a hard block: tapping it dismisses and drops you in.
+    // Essential for phones with rotation lock on (turning the device won't switch
+    // the browser to landscape, so the media query alone would trap the player).
+    rotate?.addEventListener('click', () => { if (rotate) rotate.hidden = true })
 }
 
 let usernamePromiseResolve: (name: string) => void

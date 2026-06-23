@@ -70,12 +70,15 @@
 
         /* landscape-first on mobile: cover portrait with a rotate prompt */
         #rotate{ position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center;
-                 flex-direction:column; gap:16px; text-align:center; padding:32px; background:var(--ink); color:var(--txt) }
+                 flex-direction:column; gap:16px; text-align:center; padding:32px; background:var(--ink); color:var(--txt); cursor:pointer }
         #rotate .ico{ font-size:48px; line-height:1; animation:rot 2.4s ease-in-out infinite }
         #rotate .rt{ font-family:'Oxanium'; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:var(--lime); font-size:18px }
         #rotate .rs{ color:var(--mut); font-family:'Spline Sans Mono',monospace; font-size:13px }
+        #rotate .rtap{ margin-top:10px; font-family:'Oxanium'; font-weight:800; font-size:13px; letter-spacing:1px;
+                       color:var(--ink); background:var(--lime); border-radius:10px; padding:11px 22px }
         @keyframes rot{ 0%,100%{ transform:rotate(-12deg) } 50%{ transform:rotate(78deg) } }
-        @media (orientation:portrait) and (pointer:coarse){ #rotate{ display:flex } }
+        /* hard-hide when dismissed (inline style wins over the media query) */
+        @media (orientation:portrait) and (pointer:coarse){ #rotate:not([hidden]){ display:flex } }
     </style>
 </head>
 <body>
@@ -104,7 +107,8 @@
 <div id="rotate">
     <div class="ico">⟳</div>
     <div class="rt">Rotate your device</div>
-    <div class="rs">ChainStrike plays in landscape</div>
+    <div class="rs">ChainStrike plays best in landscape</div>
+    <div class="rtap">▸ Tap to play anyway</div>
 </div>
 </body>
 </html>
