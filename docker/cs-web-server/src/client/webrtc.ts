@@ -181,7 +181,10 @@ export class Xash3DWebRTC extends Xash3D {
     }
 
     async connect() {
-        this.stream = await this.getUserMedia()
+        // No microphone: voice chat is disabled server-side, so we skip the
+        // getUserMedia prompt that stalls the connect on mobile. Gameplay runs
+        // over the data channels; the handshake doesn't need an audio track.
+        this.stream = undefined
         return new Promise(resolve => {
             this.resolve = resolve;
             this.connectWs()
