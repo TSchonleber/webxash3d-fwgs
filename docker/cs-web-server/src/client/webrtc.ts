@@ -10,8 +10,6 @@ export class Xash3DWebRTC extends Xash3D {
     private wasRemote = false
     private timeout?: ReturnType<typeof setTimeout>
     private stream?: MediaStream
-    private wsAttempts = 0
-    private reconnectTimer?: ReturnType<typeof setTimeout>
 
     constructor(opts?: Xash3DOptions) {
         super(opts);
@@ -105,6 +103,14 @@ export class Xash3DWebRTC extends Xash3D {
         this.handleDescription()
     }
 
+    private async getUserMedia() {
+        try {
+            return await navigator.mediaDevices.getUserMedia({audio: true})
+        } catch (e) {
+            return undefined
+        }
+    }
+
     private wsSend(event: string, data: unknown) {
         const msg = JSON.stringify({
             event,
@@ -159,31 +165,23 @@ export class Xash3DWebRTC extends Xash3D {
             }
         }
         this.ws = new WebSocket(`${protocol}://${host}/websocket`);
-        // Back off on error instead of reconnecting in a tight loop — a hammering
-        // retry loop is what tips a memory-pressured mobile tab into "a problem
-        // repeatedly occurred". Cap attempts, then surface a friendly message.
         this.ws.onerror = () => {
-            if (this.wsAttempts >= 8) {
-                const w = document.getElementById('warning')
-                if (w) { w.textContent = "Can't reach the match server — check your connection and reload."; w.style.opacity = '1' }
-                return
-            }
-            this.wsAttempts += 1
-            clearTimeout(this.reconnectTimer)
-            this.reconnectTimer = setTimeout(() => this.connectWs(), Math.min(1000 * this.wsAttempts, 6000))
+            this.connectWs()
         }
         this.ws.addEventListener('message', handler)
         this.ws.onopen = () => {
-            this.wsAttempts = 0
             this.startConnection()
+            if (!this.stream) {
+                this.timeout = setTimeout(() => {
+                    this.timeout = undefined
+                    document.getElementById('warning')!.style.opacity = '1'
+                }, 10000)
+            }
         }
     }
 
     async connect() {
-        // Voice chat is disabled server-side, so we never request the microphone.
-        // Skipping getUserMedia removes the mobile permission prompt and the
-        // associated connect stall — gameplay runs entirely over data channels.
-        this.stream = undefined
+        this.stream = await this.getUserMedia()
         return new Promise(resolve => {
             this.resolve = resolve;
             this.connectWs()
