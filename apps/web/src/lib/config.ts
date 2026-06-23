@@ -43,3 +43,15 @@ export function currentUtcHour(now: number = Date.now()): number {
 export function msToNextHour(now: number = Date.now()): number {
   return PERIOD_MS - (now % PERIOD_MS);
 }
+
+// Payouts fire ~this long AFTER the round boundary (the scheduler waits for the
+// oracle's final kill snapshot). Keep in sync with the box payout scheduler so
+// the on-site countdown hits 0 when SOL actually disperses.
+export const PAYOUT_OFFSET_MS = 25_000;
+
+/** ms until the next actual payout (round boundary + the dispersal offset). */
+export function msToNextPayout(now: number = Date.now()): number {
+  const lastBoundary = Math.floor(now / PERIOD_MS) * PERIOD_MS;
+  const thisPayout = lastBoundary + PAYOUT_OFFSET_MS;
+  return (now < thisPayout ? thisPayout : lastBoundary + PERIOD_MS + PAYOUT_OFFSET_MS) - now;
+}

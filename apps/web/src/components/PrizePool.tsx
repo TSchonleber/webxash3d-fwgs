@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { msToNextHour, API_BASE, PERIOD_MS } from "../lib/config";
+import { msToNextPayout, API_BASE, PERIOD_MS } from "../lib/config";
 import { splitClock } from "../lib/format";
 import { RewardApi, type PoolInfo } from "../lib/api";
 
@@ -12,11 +12,11 @@ interface Props {
 const api = new RewardApi(API_BASE);
 
 export function PrizePool({ contenders }: Props) {
-  const [remaining, setRemaining] = useState(() => msToNextHour());
+  const [remaining, setRemaining] = useState(() => msToNextPayout());
   const [pool, setPool] = useState<PoolInfo | null>(null);
 
   useEffect(() => {
-    const id = setInterval(() => setRemaining(msToNextHour()), 1000);
+    const id = setInterval(() => setRemaining(msToNextPayout()), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -29,7 +29,7 @@ export function PrizePool({ contenders }: Props) {
   }, []);
 
   const { hh, mm, ss } = splitClock(remaining);
-  const pct = Math.min(100, ((PERIOD_MS - remaining) / PERIOD_MS) * 100);
+  const pct = Math.max(0, Math.min(100, ((PERIOD_MS - remaining) / PERIOD_MS) * 100));
   const sol = pool ? pool.sol.toLocaleString("en-US", { maximumFractionDigits: 3 }) : "—";
   const vault = pool?.vaultAddress;
 

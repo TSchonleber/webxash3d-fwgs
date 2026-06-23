@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { useLeaderboard } from "../lib/useLeaderboard";
-import { API_BASE, TOKEN_MINT, TOKEN_SYMBOL } from "../lib/config";
+import { API_BASE, TOKEN_MINT, TOKEN_SYMBOL, msToNextPayout } from "../lib/config";
 import { shortWallet } from "../lib/format";
 
 /** Live prize-pool reading (on-chain treasury balance), polled. */
@@ -58,6 +58,13 @@ export function Home() {
   const live = useLeaderboard();
   const top = live.entries.slice(0, 8);
   const payouts = usePayouts();
+  const [toPay, setToPay] = useState(() => msToNextPayout());
+  useEffect(() => {
+    const id = setInterval(() => setToPay(msToNextPayout()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const payMin = Math.max(0, Math.floor(toPay / 60000));
+  const paySec = Math.max(0, Math.floor((toPay % 60000) / 1000));
   const [caCopied, setCaCopied] = useState(false);
   const copyCA = () => {
     navigator.clipboard?.writeText(TOKEN_MINT);
@@ -102,7 +109,7 @@ export function Home() {
             <span className="hud-pool-num">{pool === null ? "—" : pool.toFixed(2)}</span>
             <span className="hud-pool-unit">SOL</span>
           </div>
-          <div className="hud-sub">paid to the top 7 · next payout ≤ 15 min</div>
+          <div className="hud-sub">paid to the top 7 · next payout in <b className="mono">{payMin}:{String(paySec).padStart(2, "0")}</b></div>
           <div className="hud-sep" />
           <div className="hud-label">THIS ROUND · TOP FRAGGERS</div>
           <ol className="hud-board">
