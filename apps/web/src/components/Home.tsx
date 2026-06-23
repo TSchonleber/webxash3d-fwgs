@@ -48,7 +48,7 @@ const TREASURY = "6omjnxK1H4X3JaJZmwr8jzyEUY5jwgaDsP4mQcxeDJjk";
 
 const STEPS = [
   { k: "DROP IN", body: "Pick a callsign and load straight into the live free-for-all. No install, no team menu — you spawn with a rifle." },
-  { k: "RACK FRAGS", body: "Every kill scores. The board ranks purely by frags and wipes every 15 minutes — each round is a clean slate." },
+  { k: "RACK FRAGS", body: "Every kill scores. The board ranks purely by frags and wipes every 30 minutes — each round is a clean slate." },
   { k: "GET PAID", body: "When the round closes, the top fraggers are paid in SOL, straight to the wallet tied to your callsign." },
 ];
 
@@ -91,7 +91,7 @@ export function Home() {
           <h1>Frag for <span className="g">SOL</span>.</h1>
           <p>
             Counter-Strike 1.6 in your browser. Top the kill count and the prize
-            pool pays out on Solana every 15 minutes.
+            pool pays out on Solana every 30 minutes.
           </p>
           <div className="hero-cta">
             <button className="btn play" disabled={!ready} onClick={login}>▸ SIGN IN TO PLAY</button>
