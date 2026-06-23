@@ -69,7 +69,27 @@ var pool = goxash3d_fwgs.NewBytesPool(256)
 // reconnect storm or abuse sheds excess (returns "try again later") instead of
 // saturating the game and freezing everyone already in. Raise once we scale out.
 const maxConns = 80
+const maxPerIP = 5 // max concurrent connections from one IP — stops a single client/storm hogging slots (generous for NAT)
 var connTokens = make(chan struct{}, 30) // burst 30, refilled ~20/sec in runSFU
+var (
+	ipConnMu sync.Mutex
+	ipConns  = map[string]int{}
+)
+
+// clientIP extracts the real client IP (Caddy sets X-Forwarded-For; fall back to RemoteAddr).
+func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if i := strings.IndexByte(xff, ','); i >= 0 {
+			return strings.TrimSpace(xff[:i])
+		}
+		return strings.TrimSpace(xff)
+	}
+	addr := r.RemoteAddr
+	if i := strings.LastIndexByte(addr, ':'); i >= 0 {
+		return addr[:i]
+	}
+	return addr
+}
 var connections = make([]io.Writer, 256)
 
 var (
@@ -328,6 +348,29 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) { // nolint
 		_ = unsafeConn.Close()
 		return
 	}
+
+	// Per-IP cap: stop one client (or a storming old build) from hogging slots so a
+	// single IP can't starve everyone else. Released when the handler returns.
+	ip := clientIP(r)
+	ipConnMu.Lock()
+	if ipConns[ip] >= maxPerIP {
+		ipConnMu.Unlock()
+		_ = unsafeConn.WriteControl(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseTryAgainLater, "too many connections"), time.Now().Add(time.Second))
+		_ = unsafeConn.Close()
+		return
+	}
+	ipConns[ip]++
+	ipConnMu.Unlock()
+	defer func() {
+		ipConnMu.Lock()
+		if ipConns[ip] <= 1 {
+			delete(ipConns, ip)
+		} else {
+			ipConns[ip]--
+		}
+		ipConnMu.Unlock()
+	}()
 
 	c := &threadSafeWriter{unsafeConn, sync.Mutex{}} // nolint
 
