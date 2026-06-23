@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { verifyEnvelope, type SignedEnvelope } from "./verify";
 import { MatchStore, type MatchStoreApi } from "./store";
 import { rankHour } from "../leaderboard";
+import { rankDaily } from "../dailyLeaderboard";
 import { settleHour } from "../settle";
 import { buildClaimArgs } from "../publisher";
 
@@ -110,6 +111,15 @@ export function createApp(deps: AppDeps) {
     if (!result) return c.json({ error: "invalid signature or unknown server" }, 401);
     store.addMatch(result);
     return c.json({ stored: true });
+  });
+
+  // Daily Top-10 board ranked by weighted skill score (kills/wins/streaks − deaths).
+  // Registered BEFORE /leaderboard/:hour so "daily" isn't captured as an hour param.
+  // ?day=<index> (UTC day = floor(unixMs/86_400_000)); defaults to today.
+  app.get("/leaderboard/daily", (c) => {
+    const q = c.req.query("day");
+    const day = q ? Number(q) : Math.floor(Date.now() / 86_400_000);
+    return c.json(rankDaily(store.matchesForDay(day)));
   });
 
   app.get("/leaderboard/:hour", (c) => {

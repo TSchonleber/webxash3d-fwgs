@@ -94,6 +94,15 @@ export class SqliteMatchStore implements MatchStoreApi {
     return rows.map((row) => JSON.parse(row.json) as MatchResult);
   }
 
+  matchesForDay(day: number): MatchResult[] {
+    const start = day * 86_400_000;
+    const end = start + 86_400_000;
+    const rows = this.db
+      .prepare(`SELECT json FROM matches WHERE ended_at_ms >= ? AND ended_at_ms < ? ORDER BY ended_at_ms, match_id`)
+      .all(start, end) as { json: string }[];
+    return rows.map((row) => JSON.parse(row.json) as MatchResult);
+  }
+
   saveSettlement(hour: number, s: Settlement): void {
     this.db
       .prepare(

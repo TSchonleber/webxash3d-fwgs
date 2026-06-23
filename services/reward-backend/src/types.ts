@@ -6,6 +6,7 @@ export interface MatchPlayer {
   won: boolean;          // player's team won the match
   kills: number;
   deaths: number;
+  bestStreak?: number;   // longest kills-without-dying streak in the match (oracle-populated; phase 2)
   headshots: number;
   shotsFired: number;
   shotsHit: number;

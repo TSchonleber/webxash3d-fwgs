@@ -6,6 +6,8 @@ import { utcHourBucket } from "../period";
 export interface MatchStoreApi {
   addMatch(r: MatchResult): void;
   matchesForHour(hour: number): MatchResult[];
+  /** All matches that ended on the given UTC day (day index = floor(unixMs/86_400_000)). */
+  matchesForDay(day: number): MatchResult[];
   saveSettlement(hour: number, s: Settlement): void;
   getSettlement(hour: number): Settlement | undefined;
   /** Bind an in-game callsign to a payout wallet. */
@@ -31,6 +33,16 @@ export class MatchStore implements MatchStoreApi {
 
   matchesForHour(hour: number): MatchResult[] {
     return [...(this.byHour.get(hour)?.values() ?? [])];
+  }
+
+  matchesForDay(day: number): MatchResult[] {
+    const start = day * 86_400_000;
+    const end = start + 86_400_000;
+    const out: MatchResult[] = [];
+    for (const bucket of this.byHour.values())
+      for (const m of bucket.values())
+        if (m.endedAtMs >= start && m.endedAtMs < end) out.push(m);
+    return out;
   }
 
   saveSettlement(hour: number, s: Settlement): void { this.settlements.set(hour, s); }
