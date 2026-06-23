@@ -264,7 +264,7 @@ function setupChat(x: { Cmd_ExecuteString: (cmd: string) => void }): boolean {
 
 // Game instances (each a 15-player match on its own core/relay). Caddy routes the
 // path prefixes to the separate containers. Load-balance: join the emptiest one.
-const INSTANCES = ['', '/m2', '/m3']
+const INSTANCES = ['', '/m2', '/m3', '/m4', '/m5']
 async function pickInstance(): Promise<string> {
     const results = await Promise.all(INSTANCES.map(async (p) => {
         try {
