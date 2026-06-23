@@ -15,6 +15,15 @@ RUN ./waf configure -T release -d --enable-openmp && ./waf build
 
 FROM golang:1.25.1 AS go
 
+# The engine bindings are cgo compiled/linked for 386, so the go stage needs the
+# same 32-bit toolchain + i386 libs the engine stage uses.
+RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y --no-install-recommends \
+      gcc-multilib g++-multilib \
+      libsdl2-dev:i386 libfreetype-dev:i386 libopus-dev:i386 libbz2-dev:i386 \
+      libvorbis-dev:i386 libopusfile-dev:i386 libogg-dev:i386 libbsd-dev:i386 \
+    && rm -rf /var/lib/apt/lists/*
+ENV PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig
+
 WORKDIR /go
 COPY docker/cs-web-server/go.mod go.mod
 COPY docker/cs-web-server/go.sum go.sum
