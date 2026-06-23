@@ -413,13 +413,24 @@ async function main() {
     const joinServer = () => x.Cmd_ExecuteString('connect 127.0.0.1:8080')
     const connectingEl = document.getElementById('connecting')
     if (connectingEl) { connectingEl.style.display = 'flex'; connectingEl.style.opacity = '1' }
-    joinServer()
-    setTimeout(joinServer, 2000)
-    setTimeout(joinServer, 5000)
-    if (spectateMode) setTimeout(() => x.Cmd_ExecuteString('spectate'), 6000)
-    setTimeout(() => {
+    const hideConnecting = () => {
         if (connectingEl) { connectingEl.style.opacity = '0'; setTimeout(() => { connectingEl.style.display = 'none' }, 600) }
-    }, 7000)
+    }
+    joinServer()
+    if (spectateMode) setTimeout(() => x.Cmd_ExecuteString('spectate'), 6000)
+    // Retry the match-connect ONLY while no game data is arriving (packetsIn flat), so a
+    // slow / mobile client that misses the first connect keeps trying — but we never
+    // interrupt a connect that's mid handshake/download. Stop the instant data flows
+    // (we're in), keep the splash up until then, and give up after ~60s.
+    const netStat = x as unknown as { packetsIn?: number }
+    let lastPkts = 0, flat = 0, attempts = 0
+    const joinLoop = setInterval(() => {
+        const p = netStat.packetsIn || 0
+        if (p > 30) { clearInterval(joinLoop); hideConnecting(); return }            // in the game
+        if (p > lastPkts) { lastPkts = p; flat = 0 }                                 // progressing — wait
+        else if (++flat >= 2) { joinServer(); flat = 0 }                             // ~6s flat — retry
+        if (++attempts >= 20) { clearInterval(joinLoop); hideConnecting(); return }  // ~60s — give up
+    }, 3000)
 
     // Guard accidental tab-close, but let an intentional "Quit to Lobby"
     // (which sets leavingToLobby) navigate away without a prompt.
