@@ -269,6 +269,21 @@
 @media (max-width: 520px) { .wallet-send { grid-template-columns: 1fr; } }
 .panel > .lock-note { padding: 0 var(--s5) var(--s5); }
 
+/* ---------- swap (SOL -> token) ---------- */
+.swap { padding: var(--s4) var(--s5) 0; }
+.swap-head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 7px; }
+.swap-head .wallet-label { margin: 0; padding: 0; }
+.swap-max { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--lime); background: none; border: 1px solid var(--line); border-radius: var(--r); padding: 3px 9px;
+  cursor: pointer; min-height: 0; }
+.swap-max:disabled { color: var(--text-faint); cursor: default; }
+.swap-row { display: grid; grid-template-columns: 1fr auto auto; gap: var(--s2); align-items: center; }
+.swap-row .wallet-input { min-width: 0; }
+.swap-unit { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); }
+.swap-est { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); margin: 7px 0 0; min-height: 16px; }
+.swap--soon .swap-row { opacity: 0.45; }
+.swap--soon .lock-note { padding: 0; margin-top: 6px; }
+
 /* ---------- claim strip ---------- */
 .claim {
   margin-top: var(--s5); display: flex; align-items: center; justify-content: space-between;

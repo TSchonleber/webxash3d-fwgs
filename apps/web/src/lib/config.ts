@@ -19,6 +19,15 @@ export const MIN_HOLD = Number(import.meta.env.VITE_MIN_HOLD ?? 1000);
 export const GATE_BYPASS = import.meta.env.VITE_GATE_BYPASS === "1";
 export const TOKEN_SYMBOL = import.meta.env.VITE_TOKEN_SYMBOL ?? "$TOKEN";
 
+// --- Swap (SOL -> game token via Jupiter) ------------------------------------
+// Native SOL mint (wrapped-SOL address Jupiter expects for the SOL side).
+export const SOL_MINT = "So11111111111111111111111111111111111111112";
+// Jupiter's free swap API. Override if you move to the keyed (api.jup.ag) tier.
+export const JUPITER_API = import.meta.env.VITE_JUPITER_API ?? "https://lite-api.jup.ag/swap/v1";
+// Slippage tolerance for the swap, in basis points (150 = 1.5%). A freshly
+// launched, thin-liquidity token may need this raised to avoid failed swaps.
+export const SWAP_SLIPPAGE_BPS = Number(import.meta.env.VITE_SWAP_SLIPPAGE_BPS ?? 150);
+
 // A deterministic demo wallet shown in dev-bypass so the UI is fully populated.
 export const DEMO_WALLET = "Dmo7xAshArEna1111111111111111111111111111111";
 

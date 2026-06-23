@@ -14,6 +14,7 @@ import {
 } from "@privy-io/react-auth/solana";
 import { DEV_BYPASS, RPC_URL, TOKEN_MINT, TOKEN_SYMBOL } from "../lib/config";
 import { useAuth } from "../lib/auth";
+import { SwapBox } from "./SwapBox";
 
 /**
  * Self-custody panel for the Privy embedded Solana wallet:
@@ -67,7 +68,16 @@ function WalletPanelStub() {
         <button className="btn ghost" disabled>Export key</button>
       </div>
 
-      <p className="lock-note">Demo wallet — live SOL and {TOKEN_SYMBOL} balances, deposits and withdrawals are active once you sign in.</p>
+      <div className="swap swap--soon">
+        <label className="wallet-label">Swap to {TOKEN_SYMBOL}</label>
+        <div className="swap-row">
+          <input className="wallet-input mono" placeholder="0.0" disabled />
+          <span className="swap-unit">SOL</span>
+          <button className="btn" disabled>Swap</button>
+        </div>
+      </div>
+
+      <p className="lock-note">Demo wallet — live SOL and {TOKEN_SYMBOL} balances, deposits, swaps and withdrawals are active once you sign in.</p>
     </Shell>
   );
 }
@@ -210,6 +220,15 @@ function PrivyWalletPanel() {
           <button className="btn ghost" onClick={() => exportWallet({ address })}>Export key</button>
         )}
       </div>
+
+      {TOKEN_MINT ? (
+        <SwapBox solBalance={balance} onSwapped={refresh} />
+      ) : (
+        <div className="swap swap--soon">
+          <label className="wallet-label">Swap to {TOKEN_SYMBOL}</label>
+          <p className="lock-note">One-tap SOL → {TOKEN_SYMBOL} swap unlocks when the token launches.</p>
+        </div>
+      )}
 
       <label className="wallet-label">Withdraw SOL</label>
       <div className="wallet-send">
