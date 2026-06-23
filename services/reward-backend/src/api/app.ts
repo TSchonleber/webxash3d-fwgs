@@ -27,6 +27,34 @@ export function createApp(deps: AppDeps) {
 
   app.get("/health", (c) => c.json({ ok: true }));
 
+  // TURN credentials for WebRTC NAT traversal. Generates short-lived Cloudflare TURN
+  // creds server-side (keeps the API token off the client) and caches them 6h since
+  // they're valid 24h. Returns {iceServers:[]} if unconfigured -> client uses direct.
+  let iceCache: { servers: unknown; exp: number } | null = null;
+  app.get("/ice", async (c) => {
+    const keyId = process.env.TURN_KEY_ID;
+    const token = process.env.TURN_API_TOKEN;
+    if (!keyId || !token) return c.json({ iceServers: [] });
+    const now = Date.now();
+    if (!iceCache || iceCache.exp < now) {
+      try {
+        const r = await fetch(
+          `https://rtc.live.cloudflare.com/v1/turn/keys/${keyId}/credentials/generate-ice-servers`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ ttl: 86400 }),
+          },
+        );
+        const d = (await r.json()) as { iceServers?: unknown };
+        iceCache = { servers: d.iceServers ?? [], exp: now + 6 * 3600 * 1000 };
+      } catch {
+        return c.json({ iceServers: [] });
+      }
+    }
+    return c.json({ iceServers: iceCache.servers });
+  });
+
   // Live prize pool = the on-chain vault's SOL balance. Cached 5s so clients can
   // poll fast (to reflect a payout promptly) without hammering the RPC, and so a
   // transient RPC error serves the last good value instead of flapping to 0.

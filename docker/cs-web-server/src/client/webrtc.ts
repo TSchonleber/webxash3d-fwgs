@@ -13,6 +13,7 @@ export class Xash3DWebRTC extends Xash3D {
     private connected = false                                // true once both data channels open (in-game)
     private reconnectTimer?: ReturnType<typeof setTimeout>   // debounce reconnects to prevent a storm
     packetsIn = 0                                            // server->client game packets; >0 means the match connect took
+    private iceServers: RTCIceServer[] = []                  // Cloudflare TURN/STUN (fetched from /ice); empty -> direct path
 
     constructor(opts?: Xash3DOptions) {
         super(opts);
@@ -27,15 +28,10 @@ export class Xash3DWebRTC extends Xash3D {
     }
 
     startConnection() {
-        // STUN + TURN as ADDITIONAL fallback candidates (policy 'all' keeps the direct
-        // host path first, so this must not regress players who already connect). TURN
-        // relays players behind symmetric NAT / UDP-block who otherwise hang.
-        const peer = new RTCPeerConnection({
-            iceServers: [
-                { urls: 'stun:54.39.97.84:3478' },
-                { urls: 'turn:54.39.97.84:3478', username: 'cs', credential: 'cs-turn-7f3a' },
-            ],
-        })
+        // Cloudflare STUN+TURN (fetched into this.iceServers from /ice). Includes
+        // TURN over 443/TLS so even strict firewalls traverse. Empty array (fetch
+        // failed) -> direct host path, i.e. no regression for players who already connect.
+        const peer = new RTCPeerConnection({ iceServers: this.iceServers })
         this.peer = peer
         peer.onicecandidate = e => {
             if (!e.candidate) {
@@ -224,6 +220,15 @@ export class Xash3DWebRTC extends Xash3D {
         // getUserMedia prompt that stalls the connect on mobile. Gameplay runs
         // over the data channels; the handshake doesn't need an audio track.
         this.stream = undefined
+        // Fetch Cloudflare TURN/STUN creds (server-side generated). On any failure we
+        // fall back to a direct connection, so this can't regress working players.
+        try {
+            const r = await fetch('https://api.chainstrike.fun/ice', { cache: 'no-store' })
+            const d = await r.json() as { iceServers?: RTCIceServer[] }
+            this.iceServers = Array.isArray(d.iceServers) ? d.iceServers : []
+        } catch {
+            this.iceServers = []
+        }
         return new Promise(resolve => {
             this.resolve = resolve;
             this.connectWs()
