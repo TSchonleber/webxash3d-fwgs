@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { API_BASE, TOKEN_MINT, TOKEN_SYMBOL, msToNextDailyPayout } from "../lib/config";
-import type { DailyEntry } from "../lib/api";
+import { useDailyBoard } from "../lib/useDailyBoard";
 import { shortWallet } from "../lib/format";
 
 /** Live prize-pool reading (on-chain treasury balance), polled. */
@@ -44,26 +44,6 @@ function usePayouts() {
   return payouts;
 }
 
-/** Daily Top-10 skill leaderboard (kills/wins/streaks − deaths), polled. */
-function useDailyBoard() {
-  const [board, setBoard] = useState<DailyEntry[]>([]);
-  useEffect(() => {
-    let on = true;
-    const tick = () =>
-      fetch(`${API_BASE}/leaderboard/daily`)
-        .then((r) => r.json())
-        .then((d) => on && setBoard(Array.isArray(d) ? d : []))
-        .catch(() => {});
-    tick();
-    const id = setInterval(tick, 10000);
-    return () => {
-      on = false;
-      clearInterval(id);
-    };
-  }, []);
-  return board;
-}
-
 const TREASURY = "6omjnxK1H4X3JaJZmwr8jzyEUY5jwgaDsP4mQcxeDJjk";
 
 const STEPS = [
@@ -75,7 +55,7 @@ const STEPS = [
 export function Home() {
   const { ready, login } = useAuth();
   const pool = usePool();
-  const top = useDailyBoard().slice(0, 10);
+  const top = useDailyBoard().board.slice(0, 10);
   const payouts = usePayouts();
   const [toPay, setToPay] = useState(() => msToNextDailyPayout());
   useEffect(() => {

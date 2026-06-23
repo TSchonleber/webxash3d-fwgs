@@ -7,12 +7,12 @@ const STEPS = [
   {
     n: "02",
     title: "Climb the board",
-    body: "Most kills wins. The leaderboard ranks purely by frags and resets every 15 minutes, so every round is a fresh shot at the top.",
+    body: "Kills, wins, streaks and accuracy feed a weighted skill score. The daily Top 10 board resets at midnight UTC — each day is a fresh shot at the top.",
   },
   {
     n: "03",
     title: "Get paid",
-    body: "When the round closes, the top fraggers are paid out on Solana — verifiably, straight to your wallet.",
+    body: "Each day the Top 10 are paid out on Solana — verifiably, straight to the wallet tied to your callsign.",
   },
 ];
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { msToNextPayout, API_BASE, PERIOD_MS } from "../lib/config";
+import { msToNextDailyPayout, API_BASE, DAY_MS } from "../lib/config";
 import { splitClock } from "../lib/format";
 import { RewardApi, type PoolInfo } from "../lib/api";
 
@@ -12,11 +12,11 @@ interface Props {
 const api = new RewardApi(API_BASE);
 
 export function PrizePool({ contenders }: Props) {
-  const [remaining, setRemaining] = useState(() => msToNextPayout());
+  const [remaining, setRemaining] = useState(() => msToNextDailyPayout());
   const [pool, setPool] = useState<PoolInfo | null>(null);
 
   useEffect(() => {
-    const id = setInterval(() => setRemaining(msToNextPayout()), 1000);
+    const id = setInterval(() => setRemaining(msToNextDailyPayout()), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -29,22 +29,22 @@ export function PrizePool({ contenders }: Props) {
   }, []);
 
   const { hh, mm, ss } = splitClock(remaining);
-  const pct = Math.max(0, Math.min(100, ((PERIOD_MS - remaining) / PERIOD_MS) * 100));
+  const pct = Math.max(0, Math.min(100, ((DAY_MS - remaining) / DAY_MS) * 100));
   const sol = pool ? pool.sol.toLocaleString("en-US", { maximumFractionDigits: 3 }) : "—";
   const vault = pool?.vaultAddress;
 
   return (
     <section className="hero">
       <div className="prize">
-        <p className="eyebrow">Live Prize Pool · This Round</p>
+        <p className="eyebrow">Live Prize Pool · Today</p>
         <h1 className="prize-figure mono">
           {sol}
           <span className="unit">SOL</span>
         </h1>
         <p className="prize-sub">
-          Paid in <b>SOL</b> to the top 7 every 15 min from the on-chain vault
+          Paid in <b>SOL</b> to the daily <b>Top 10</b> from the on-chain vault
           {vault ? <> (<span className="mono">{vault.slice(0, 4)}…{vault.slice(-4)}</span>)</> : null}.{" "}
-          <b>{contenders}</b> contender{contenders === 1 ? "" : "s"} this round.
+          <b>{contenders}</b> contender{contenders === 1 ? "" : "s"} today.
         </p>
       </div>
 
@@ -57,7 +57,7 @@ export function PrizePool({ contenders }: Props) {
           <span className="sep">:</span>
           <span className="seg">{ss}</span>
         </div>
-        <div className="meta">NEXT PAYOUT · EVERY 15 MIN</div>
+        <div className="meta">NEXT PAYOUT · DAILY</div>
         <div className="bar"><i style={{ width: `${pct}%` }} /></div>
       </div>
     </section>

@@ -9,7 +9,7 @@ import { ClaimPanel } from "./components/ClaimPanel";
 import { WalletPanel } from "./components/WalletPanel";
 import { HowItWorks } from "./components/HowItWorks";
 import { useAuth } from "./lib/auth";
-import { useLeaderboard } from "./lib/useLeaderboard";
+import { useDailyBoard } from "./lib/useDailyBoard";
 import { DEV_BYPASS } from "./lib/config";
 import { shortWallet } from "./lib/format";
 
@@ -39,19 +39,16 @@ function TopBar() {
 
 function Dashboard() {
   const { walletAddress } = useAuth();
-  const live = useLeaderboard();
-
-  const entries = live.entries;
+  const { board, loading } = useDailyBoard();
 
   return (
     <>
       <TopBar />
-      <PrizePool contenders={entries.length} />
+      <PrizePool contenders={board.length} />
       <div className="grid">
         <Leaderboard
-          entries={entries}
-          loading={live.loading && entries.length === 0}
-          hour={live.hour}
+          entries={board}
+          loading={loading && board.length === 0}
           me={walletAddress}
         />
         <GamePanel />

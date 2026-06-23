@@ -1,27 +1,26 @@
-import type { RankedEntry } from "../lib/api";
+import type { DailyEntry } from "../lib/api";
 import { shortWallet } from "../lib/format";
 
 interface Props {
-  entries: RankedEntry[];
+  entries: DailyEntry[];
   loading: boolean;
-  hour: number;
   me: string | null;
 }
 
-export function Leaderboard({ entries, loading, hour, me }: Props) {
+export function Leaderboard({ entries, loading, me }: Props) {
   return (
     <div className="panel">
       <div className="panel-head">
-        <h2>Live <span className="accent">Leaderboard</span></h2>
-        <span className="hint">ROUND #{hour} · REFRESH 10s</span>
+        <h2>Daily <span className="accent">Leaderboard</span></h2>
+        <span className="hint">TODAY · TOP 10 · BY SKILL SCORE</span>
       </div>
 
       {entries.length === 0 ? (
         <div className="empty">
           {loading ? (
-            <><span className="spin" />Pulling live standings…</>
+            <><span className="spin" />Pulling today's standings…</>
           ) : (
-            <>No frags logged this round yet — be the first on the board.</>
+            <>No frags logged today yet — be the first on the board.</>
           )}
         </div>
       ) : (
@@ -31,8 +30,9 @@ export function Leaderboard({ entries, loading, hour, me }: Props) {
               <th style={{ width: 64 }}>Rank</th>
               <th>Player</th>
               <th className="num">Kills</th>
-              <th className="num">Deaths</th>
-              <th className="num">Matches</th>
+              <th className="num">K/D</th>
+              <th className="num">Win%</th>
+              <th className="num">Score</th>
             </tr>
           </thead>
           <tbody>
@@ -46,9 +46,10 @@ export function Leaderboard({ entries, loading, hour, me }: Props) {
                     {shortWallet(e.wallet)}
                     {mine && <span className="dim"> · you</span>}
                   </td>
-                  <td className="num points">{e.kills.toLocaleString("en-US")}</td>
-                  <td className="num dim">{e.deaths.toLocaleString("en-US")}</td>
-                  <td className="num dim">{e.matches}</td>
+                  <td className="num dim">{e.kills.toLocaleString("en-US")}</td>
+                  <td className="num dim">{e.kd}</td>
+                  <td className="num dim">{e.winPct}%</td>
+                  <td className="num points">{e.score.toLocaleString("en-US")}</td>
                 </tr>
               );
             })}
