@@ -52,3 +52,15 @@ func (r *MatchRunner) Finalize(matchID string, endedAtMs int64) error {
 	r.reset()
 	return err
 }
+
+// Snapshot posts the current accumulated result WITHOUT resetting. Used for
+// live periodic flushing on persistent (never-ending) match servers, where the
+// backend upserts by matchID so the leaderboard tracks cumulative kills.
+func (r *MatchRunner) Snapshot(matchID string, endedAtMs int64) error {
+	r.agg.matchID = matchID
+	return r.post(r.agg.Finalize(endedAtMs))
+}
+
+// Reset clears accumulated state. Call at the period rollover so each scoring
+// window starts fresh.
+func (r *MatchRunner) Reset() { r.reset() }

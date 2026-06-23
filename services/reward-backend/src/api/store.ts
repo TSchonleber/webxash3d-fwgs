@@ -10,7 +10,10 @@ export class MatchStore {
     const hour = utcHourBucket(r.endedAtMs);
     let bucket = this.byHour.get(hour);
     if (!bucket) { bucket = new Map(); this.byHour.set(hour, bucket); }
-    if (!bucket.has(r.matchId)) bucket.set(r.matchId, r);
+    // Upsert by matchId. Persistent (never-ending) servers post a live snapshot
+    // for the same period matchId every few seconds; later snapshots carry the
+    // cumulative tally and replace the earlier one so the leaderboard tracks live.
+    bucket.set(r.matchId, r);
   }
 
   matchesForHour(hour: number): MatchResult[] {

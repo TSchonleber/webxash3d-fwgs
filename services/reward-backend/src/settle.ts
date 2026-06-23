@@ -23,7 +23,7 @@ export interface Settlement {
 export async function settleHour(matches: MatchResult[], ctx: SettleCtx): Promise<Settlement> {
   // flag wallets that were suspicious in ANY match this hour
   const flagged = new Set<string>();
-  for (const m of matches) for (const p of m.players) if (screenPlayer(p).suspicious) flagged.add(p.wallet);
+  for (const m of matches) for (const p of m.players ?? []) if (screenPlayer(p).suspicious) flagged.add(p.wallet);
 
   const board = rankHour(matches, { minMatches: ctx.minMatches }).filter((e) => !flagged.has(e.wallet));
 

@@ -10,7 +10,7 @@ export function rankHour(matches: MatchResult[], opts: RankOptions): RankedEntry
   const points = new Map<string, number>();
   const counts = new Map<string, number>();
   for (const m of matches) {
-    for (const p of m.players) {
+    for (const p of m.players ?? []) {
       points.set(p.wallet, (points.get(p.wallet) ?? 0) + matchPoints(p));
       counts.set(p.wallet, (counts.get(p.wallet) ?? 0) + 1);
     }

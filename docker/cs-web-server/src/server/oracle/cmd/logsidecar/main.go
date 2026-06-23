@@ -1,25 +1,40 @@
+// logsidecar — tails a ChainStrike game server's HLDS log and feeds kills into
+// the reward backend's leaderboard.
+//
+// Reads log lines from stdin (pipe `docker logs -f <container>` in) or, if
+// LOG_PATH is set, tails that file. Because the DM server is persistent (never
+// ends a match), it does NOT wait for a map-change: it flushes a LIVE snapshot
+// of the current 30-min period every FLUSH_SECONDS under a stable per-period
+// matchID, which the backend upserts so the leaderboard tracks cumulative kills.
 package main
 
 import (
+	"bufio"
 	"crypto/ed25519"
 	"encoding/base64"
 	"log"
 	"os"
-	"regexp"
+	"strconv"
+	"sync"
 	"time"
 
 	"oracle"
 )
 
 func main() {
-	logPath := env("LOG_PATH", "")
+	logPath := env("LOG_PATH", "") // optional; if empty we read stdin
 	backend := env("BACKEND_URL", "http://localhost:8787")
-	seedB64 := env("ORACLE_SEED_B64", "") // base64 of a 32-byte ed25519 seed
-	endPat := regexp.MustCompile(env("MATCH_END_PATTERN", `: Started map|-+ Mapchange`))
-	if logPath == "" || seedB64 == "" {
-		log.Fatal("LOG_PATH and ORACLE_SEED_B64 are required")
+	seedB64 := env("ORACLE_SEED_B64", "")
+	serverID := env("SERVER_ID", "dm")
+	flushSec, _ := strconv.Atoi(env("FLUSH_SECONDS", "10"))
+	periodMs, _ := strconv.ParseInt(env("PERIOD_MS", "1800000"), 10, 64) // 30 min
+	fallbackName := env("RESOLVE_FALLBACK_NAME", "1") == "1"
+	if seedB64 == "" {
+		log.Fatal("ORACLE_SEED_B64 is required")
 	}
-
+	if flushSec < 1 {
+		flushSec = 10
+	}
 	seed, err := base64.StdEncoding.DecodeString(seedB64)
 	if err != nil || len(seed) != ed25519.SeedSize {
 		log.Fatalf("ORACLE_SEED_B64 must be base64 of a %d-byte seed", ed25519.SeedSize)
@@ -27,26 +42,63 @@ func main() {
 	signer := oracle.NewSigner(ed25519.NewKeyFromSeed(seed))
 	reg := oracle.NewRegistryClient(backend)
 
+	// Resolve players by registered wallet; for testing, fall back to the raw
+	// in-game name as the identity so the board populates without registration.
 	runner := oracle.NewMatchRunner(
-		func(_ int, name string) (string, bool) { return reg.Resolve(name) },
+		func(_ int, name string) (string, bool) {
+			if w, ok := reg.Resolve(name); ok {
+				return w, true
+			}
+			if fallbackName && name != "" {
+				return name, true
+			}
+			return "", false
+		},
 		func(res oracle.MatchResult) error { return signer.Post(backend+"/results", res) },
 	)
 
-	matchN := 0
-	stop := make(chan struct{})
-	log.Printf("logsidecar tailing %s -> %s", logPath, backend)
-	oracle.TailFile(logPath, func(line string) {
-		runner.Feed(line)
-		if endPat.MatchString(line) {
-			matchN++
-			id := time.Now().Format("20060102T150405") // stamped match id
-			if err := runner.Finalize(id, nowMs()); err != nil {
-				log.Printf("post failed for match %d: %v", matchN, err)
-			} else {
-				log.Printf("posted match %s", id)
+	var mu sync.Mutex
+	lastPeriod := int64(-1)
+
+	// Periodic live flush of the current period's tally.
+	go func() {
+		t := time.NewTicker(time.Duration(flushSec) * time.Second)
+		defer t.Stop()
+		for range t.C {
+			now := time.Now().UnixMilli()
+			p := now / periodMs
+			mu.Lock()
+			if p != lastPeriod {
+				if lastPeriod >= 0 {
+					// finalize the period that just closed, then start fresh
+					_ = runner.Snapshot(serverID+"-"+strconv.FormatInt(lastPeriod, 10), lastPeriod*periodMs+periodMs-1)
+					runner.Reset()
+				}
+				lastPeriod = p
 			}
+			if err := runner.Snapshot(serverID+"-"+strconv.FormatInt(p, 10), now); err != nil {
+				log.Printf("snapshot post failed: %v", err)
+			}
+			mu.Unlock()
 		}
-	}, stop)
+	}()
+
+	feed := func(line string) {
+		mu.Lock()
+		runner.Feed(line)
+		mu.Unlock()
+	}
+
+	log.Printf("logsidecar[%s] -> %s (flush %ds)", serverID, backend, flushSec)
+	if logPath != "" {
+		oracle.TailFile(logPath, feed, make(chan struct{}))
+		return
+	}
+	sc := bufio.NewScanner(os.Stdin)
+	sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for sc.Scan() {
+		feed(sc.Text())
+	}
 }
 
 func env(k, def string) string {
@@ -55,5 +107,3 @@ func env(k, def string) string {
 	}
 	return def
 }
-
-func nowMs() int64 { return time.Now().UnixMilli() }

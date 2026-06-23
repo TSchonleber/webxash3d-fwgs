@@ -5,6 +5,7 @@ import { PrizePool } from "./components/PrizePool";
 import { Leaderboard } from "./components/Leaderboard";
 import { GamePanel } from "./components/GamePanel";
 import { ClaimPanel } from "./components/ClaimPanel";
+import { HowItWorks } from "./components/HowItWorks";
 import { useAuth } from "./lib/auth";
 import { useLeaderboard } from "./lib/useLeaderboard";
 import { DEV_BYPASS } from "./lib/config";
@@ -55,6 +56,7 @@ function Dashboard() {
         <GamePanel />
       </div>
       <ClaimPanel />
+      <HowItWorks />
     </>
   );
 }

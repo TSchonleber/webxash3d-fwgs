@@ -66,6 +66,8 @@
   .matches h2{ font-family:'Oxanium'; font-weight:800; font-size:30px; text-align:center; margin-bottom:8px }
   .matches .lede{ text-align:center; color:var(--mut); margin-bottom:28px }
   .match-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px }
+  .match-grid--solo{ max-width:440px; margin:0 auto }
+  .m-desc{ color:var(--mut); font-size:13px; margin:0 0 16px; line-height:1.5 }
   @media(max-width:760px){ .match-grid{ grid-template-columns:1fr } }
   .match .m-top{ display:flex; align-items:center; justify-content:space-between }
   .match .m-name{ font-family:'Oxanium'; font-weight:800; font-size:20px }
@@ -97,7 +99,7 @@
     <h1>Frag for <span class="g">crypto.</span></h1>
     <p>Counter-Strike 1.6, right in your browser. Climb the leaderboard — the top 7 get paid on Solana every 30 minutes.</p>
     <div class="cta-row">
-      <a class="play" href="#matches">▸ PLAY NOW</a>
+      <a class="play" href="http://54.39.97.84:27016" target="_blank">▸ PLAY NOW</a>
       <a class="ghost" href="#how">How it works</a>
     </div>
   </section>
@@ -115,33 +117,14 @@
   </section>
 
   <section class="matches" id="matches">
-    <h2>Live matches</h2>
-    <p class="lede">Jump into any live server — or spectate the action.</p>
-    <div class="match-grid">
+    <h2>Live match</h2>
+    <p class="lede">One arena. Free-for-all. Click play and you're in.</p>
+    <div class="match-grid match-grid--solo">
       <div class="match card">
-        <div class="m-top"><span class="m-name">Vault Raid</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
-        <div class="m-meta"><span class="m-chip m-mapchip">de_dust2</span><span class="m-chip m-modechip">Round-based</span><span class="m-slots">16 slots</span></div>
-        <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27016" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27016/?spectate" target="_blank">Spectate</a></div>
-      </div>
-      <div class="match card">
-        <div class="m-top"><span class="m-name">Hashpoint</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
-        <div class="m-meta"><span class="m-chip m-mapchip">de_inferno</span><span class="m-chip m-modechip">Round-based</span><span class="m-slots">16 slots</span></div>
-        <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27116" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27116/?spectate" target="_blank">Spectate</a></div>
-      </div>
-      <div class="match card">
-        <div class="m-top"><span class="m-name">Degen Dust</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
-        <div class="m-meta"><span class="m-chip m-mapchip">de_aztec</span><span class="m-chip m-modechip">Round-based</span><span class="m-slots">16 slots</span></div>
-        <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27216" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27216/?spectate" target="_blank">Spectate</a></div>
-      </div>
-      <div class="match card">
-        <div class="m-top"><span class="m-name">Cold Storage</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
-        <div class="m-meta"><span class="m-chip m-mapchip">de_nuke</span><span class="m-chip m-modechip dm">⚡ Deathmatch</span><span class="m-slots">16 slots</span></div>
-        <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27316" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27316/?spectate" target="_blank">Spectate</a></div>
-      </div>
-      <div class="match card">
-        <div class="m-top"><span class="m-name">Liquidation</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
-        <div class="m-meta"><span class="m-chip m-mapchip">de_train</span><span class="m-chip m-modechip dm">⚡ Deathmatch</span><span class="m-slots">16 slots</span></div>
-        <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27416" target="_blank">▸ Play</a><a class="m-spec" href="http://54.39.97.84:27416/?spectate" target="_blank">Spectate</a></div>
+        <div class="m-top"><span class="m-name">ChainStrike Deathmatch</span><span class="m-live"><span class="dot"></span>LIVE</span></div>
+        <div class="m-meta"><span class="m-chip m-mapchip">de_train</span><span class="m-chip m-modechip dm">⚡ FFA Deathmatch</span><span class="m-slots">30 slots</span></div>
+        <p class="m-desc">Spawn with a rifle, instant respawn, free-for-all. Every frag climbs the leaderboard.</p>
+        <div class="m-btns"><a class="m-play" href="http://54.39.97.84:27016" target="_blank">▸ Play now</a><a class="m-spec" href="http://54.39.97.84:27016/?spectate" target="_blank">Spectate</a></div>
       </div>
     </div>
   </section>
