@@ -27,7 +27,15 @@ export class Xash3DWebRTC extends Xash3D {
     }
 
     startConnection() {
-        const peer = new RTCPeerConnection()
+        // STUN + TURN as ADDITIONAL fallback candidates (policy 'all' keeps the direct
+        // host path first, so this must not regress players who already connect). TURN
+        // relays players behind symmetric NAT / UDP-block who otherwise hang.
+        const peer = new RTCPeerConnection({
+            iceServers: [
+                { urls: 'stun:54.39.97.84:3478' },
+                { urls: 'turn:54.39.97.84:3478', username: 'cs', credential: 'cs-turn-7f3a' },
+            ],
+        })
         this.peer = peer
         peer.onicecandidate = e => {
             if (!e.candidate) {
