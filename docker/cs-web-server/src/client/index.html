@@ -94,6 +94,11 @@
                 background:rgba(255,46,136,.16); border:2px solid rgba(255,46,136,.75); color:var(--txt);
                 font-family:'Oxanium',sans-serif; font-weight:800; font-size:15px; letter-spacing:1px }
         #mfire:active{ background:rgba(255,46,136,.34) }
+        /* quit-to-lobby (top-left) */
+        #mquit{ position:fixed; top:12px; left:12px; height:40px; padding:0 15px; display:flex; align-items:center;
+                background:rgba(255,255,255,.06); border:1px solid rgba(255,46,136,.55); color:var(--txt);
+                border-radius:10px; font-family:'Oxanium',sans-serif; font-weight:800; font-size:12px; letter-spacing:1px }
+        #mquit:active{ background:rgba(255,46,136,.24) }
         /* tap action buttons (top-right) */
         #mtop{ position:fixed; top:12px; right:12px; display:flex; gap:10px }
         .mbtn{ min-width:64px; height:40px; display:flex; align-items:center; justify-content:center;
@@ -134,6 +139,7 @@
 <div id="mctl" hidden>
     <div id="mlook"></div>
     <div id="mpad"><div id="mnub"></div></div>
+    <div id="mquit">‹ LOBBY</div>
     <div id="mtop">
         <div id="mswap" class="mbtn">SWAP</div>
         <div id="mdrop" class="mbtn">DROP</div>

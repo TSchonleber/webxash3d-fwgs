@@ -47,6 +47,7 @@ for (const key of ['AudioContext', 'webkitAudioContext'] as const) {
 }
 const resumeAudio = () => { for (const c of audioCtxs) if (c.state === 'suspended') c.resume().catch(() => {}) }
 for (const ev of ['touchend', 'pointerup', 'click']) window.addEventListener(ev, resumeAudio)
+;(window as unknown as Record<string, unknown>).__ctxs = audioCtxs  // debug: inspect audio context state
 
 const touchControls = document.getElementById('touchControls') as HTMLInputElement
 touchControls.addEventListener('change', () => {
@@ -151,23 +152,24 @@ function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }) {
     fire.addEventListener('pointerdown', (e) => { e.preventDefault(); fire.setPointerCapture(e.pointerId); x.Cmd_ExecuteString('+attack') })
     fire.addEventListener('pointerup', fireUp); fire.addEventListener('pointercancel', fireUp); fire.addEventListener('pointerleave', fireUp)
 
-    // ---- look/aim (right-side drag) ----
-    // Mouse injection doesn't reach the engine, so use the keyboard-look commands
-    // (+left/+right/+lookup/+lookdown) — same path move uses. Joystick-style: hold
-    // the drag off-center to keep turning; release to stop.
-    const clearLook = () => ['left', 'right', 'lookup', 'lookdown'].forEach((c) => set(c, false))
-    let lookId: number | null = null, lsx = 0, lsy = 0
-    const lookMove = (cx: number, cy: number) => {
-        const dx = cx - lsx, dy = cy - lsy, dz = 12
-        // proportional turn speed — gentle near center, faster the further you drag
-        x.Cmd_ExecuteString('cl_yawspeed ' + Math.min(200, Math.round(Math.abs(dx) * 0.85)))
-        x.Cmd_ExecuteString('cl_pitchspeed ' + Math.min(160, Math.round(Math.abs(dy) * 0.8)))
-        set('right', dx > dz); set('left', dx < -dz)
-        set('lookup', dy < -dz); set('lookdown', dy > dz)
-    }
-    look.addEventListener('pointerdown', (e) => { e.preventDefault(); lookId = e.pointerId; look.setPointerCapture(e.pointerId); lsx = e.clientX; lsy = e.clientY })
-    look.addEventListener('pointermove', (e) => { if (e.pointerId === lookId) { e.preventDefault(); lookMove(e.clientX, e.clientY) } })
-    const lookEnd = (e: PointerEvent) => { if (e.pointerId === lookId) { lookId = null; clearLook() } }
+    // ---- look/aim (right-side drag) → native 1:1 mouse-look ----
+    // SDL reads absolute-mode position deltas from canvas mousemove events, so we
+    // keep a virtual cursor and offset it by the finger's movement. True 1:1 aiming
+    // (smooth, like a desktop mouse) instead of rate-based keyboard turning.
+    const canvas = document.getElementById('canvas') as HTMLCanvasElement
+    const LOOK_SENS = 4
+    let vmx = Math.round(window.innerWidth / 2), vmy = Math.round(window.innerHeight / 2)
+    let lookId: number | null = null, lpx = 0, lpy = 0
+    look.addEventListener('pointerdown', (e) => { e.preventDefault(); lookId = e.pointerId; look.setPointerCapture(e.pointerId); lpx = e.clientX; lpy = e.clientY })
+    look.addEventListener('pointermove', (e) => {
+        if (e.pointerId !== lookId) return
+        e.preventDefault()
+        const dx = (e.clientX - lpx) * LOOK_SENS, dy = (e.clientY - lpy) * LOOK_SENS
+        lpx = e.clientX; lpy = e.clientY
+        vmx += dx; vmy += dy
+        canvas.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: vmx, clientY: vmy, movementX: dx, movementY: dy }))
+    })
+    const lookEnd = (e: PointerEvent) => { if (e.pointerId === lookId) lookId = null }
     look.addEventListener('pointerup', lookEnd); look.addEventListener('pointercancel', lookEnd)
 
     // ---- tap action buttons ----
@@ -176,6 +178,7 @@ function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }) {
     }
     tap('mswap', 'invnext')   // cycle to next weapon
     tap('mdrop', 'drop')      // drop current weapon
+    document.getElementById('mquit')?.addEventListener('pointerdown', (e) => { e.preventDefault(); goToLobby() })
 }
 
 async function main() {
