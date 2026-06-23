@@ -459,20 +459,30 @@ if (spectateMode) {
     usernamePromiseResolve('spectator')
 }
 
-main()
+// ---- pre-launch lock ----
+// Closed to the public until $TOKEN launches. The operator unlocks with ?key=...
+// (remembered per-device via localStorage). This is a soft client-side gate — at
+// coin launch, replace with the real per-wallet 1000-token check enforced server-side.
+const LOCKED = true
+const BYPASS_KEY = 'cs-unlock-7f3aq92k'
+if (new URLSearchParams(window.location.search).get('key') === BYPASS_KEY) {
+    localStorage.setItem('cs_unlock', BYPASS_KEY)
+}
+const unlocked = !LOCKED || localStorage.getItem('cs_unlock') === BYPASS_KEY
 
-// Robust mobile-control bootstrap: independent of main()'s async timing and of the
-// engine touching the DOM during init. Every tick: keep the overlay shown, and wire
-// the controls once the engine + elements are both ready. Cheap; runs from page load.
-{
-    // Visibility is handled by CSS (@media pointer:coarse). This only wires the
-    // handlers — re-evaluating touch each tick so it still works if the pointer
-    // type is detected late. Cheap; runs from page load.
+if (!unlocked) {
+    // Show the lock screen and do NOT load/connect the game.
+    const lk = document.getElementById('locked'); if (lk) lk.style.display = 'flex'
+    const f = document.getElementById('form'); if (f) f.style.display = 'none'
+} else {
+    main()
+    // Robust mobile-control bootstrap: wire controls once the engine + elements are
+    // ready (visibility handled by CSS). Re-evaluates touch each tick. Cheap.
     let wiredTouch = false, wiredChat = false
     setInterval(() => {
         if (!engine) return
         const isTouch = window.matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints ?? 0) > 0
         if (isTouch && !wiredTouch && setupTouchControls(engine)) wiredTouch = true
-        if (!wiredChat && setupChat(engine)) wiredChat = true   // chat on all devices
+        if (!wiredChat && setupChat(engine)) wiredChat = true
     }, 600)
 }

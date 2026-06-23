@@ -68,6 +68,16 @@
         #connecting .ct{ margin-top:22px; font-family:'Oxanium'; font-weight:800; letter-spacing:2px; color:var(--lime) }
         #connecting .cs{ margin-top:6px; color:var(--mut); font-size:14px; font-family:'Spline Sans Mono',monospace }
 
+        /* pre-launch lock screen */
+        #locked{ position:fixed; inset:0; z-index:30; display:none; flex-direction:column; align-items:center; justify-content:center;
+                 gap:14px; text-align:center; padding:32px; background:var(--ink); color:var(--txt) }
+        #locked img{ width:118px; height:118px; border-radius:26px; margin-bottom:6px;
+                     filter:drop-shadow(0 0 30px rgba(166,229,0,.4)) }
+        #locked .lk-lock{ font-size:30px }
+        #locked .lk-t{ font-family:'Oxanium',sans-serif; font-weight:800; font-size:clamp(22px,5vw,32px); letter-spacing:1px; text-transform:uppercase }
+        #locked .lk-t b{ color:var(--lime) }
+        #locked .lk-s{ color:var(--mut); font-family:'Spline Sans Mono',monospace; font-size:14px; max-width:44ch; line-height:1.6 }
+
         /* landscape-first on mobile: cover portrait with a rotate prompt */
         #rotate{ position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center;
                  flex-direction:column; gap:16px; text-align:center; padding:32px; background:var(--ink); color:var(--txt); cursor:pointer }
@@ -134,6 +144,13 @@
 <img id="logo" alt="ChainStrike" class="notDraggable" src="logo.png"/>
 <progress id="progress" value="0" max="1"></progress>
 <canvas id="canvas"></canvas>
+
+<div id="locked">
+    <img src="logo.png" alt="ChainStrike"/>
+    <div class="lk-lock">🔒</div>
+    <div class="lk-t">Locked until <b>$TOKEN</b> launch</div>
+    <div class="lk-s">ChainStrike opens to holders of 1000&nbsp;$TOKEN. The drop is coming soon — follow for the launch.</div>
+</div>
 
 <form id="form">
     <div class="brandline">CHAIN<b>STRIKE</b></div>
