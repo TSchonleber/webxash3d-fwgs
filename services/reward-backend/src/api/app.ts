@@ -105,18 +105,16 @@ export function createApp(deps: AppDeps) {
     });
   });
 
-  // --- player name -> wallet registration (Phase 0, in-memory) ---
-  const nameToWallet = new Map<string, string>();
-
+  // --- player callsign -> wallet registration (persisted via the store) ---
   app.post("/register", async (c) => {
     const { playerName, wallet } = (await c.req.json()) as { playerName?: string; wallet?: string };
     if (!playerName || !wallet) return c.json({ error: "playerName and wallet required" }, 400);
-    nameToWallet.set(playerName, wallet);
+    store.registerName(playerName, wallet);
     return c.json({ registered: true });
   });
 
   app.get("/resolve/:name", (c) => {
-    const wallet = nameToWallet.get(c.req.param("name"));
+    const wallet = store.resolveName(c.req.param("name"));
     if (!wallet) return c.json({ error: "unknown name" }, 404);
     return c.json({ wallet });
   });

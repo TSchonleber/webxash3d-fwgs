@@ -8,11 +8,16 @@ export interface MatchStoreApi {
   matchesForHour(hour: number): MatchResult[];
   saveSettlement(hour: number, s: Settlement): void;
   getSettlement(hour: number): Settlement | undefined;
+  /** Bind an in-game callsign to a payout wallet. */
+  registerName(name: string, wallet: string): void;
+  /** Resolve a callsign to its wallet, or undefined if unregistered. */
+  resolveName(name: string): string | undefined;
 }
 
 export class MatchStore implements MatchStoreApi {
   private byHour = new Map<number, Map<string, MatchResult>>();
   private settlements = new Map<number, Settlement>();
+  private registrations = new Map<string, string>();
 
   addMatch(r: MatchResult): void {
     const hour = utcHourBucket(r.endedAtMs);
@@ -30,4 +35,7 @@ export class MatchStore implements MatchStoreApi {
 
   saveSettlement(hour: number, s: Settlement): void { this.settlements.set(hour, s); }
   getSettlement(hour: number): Settlement | undefined { return this.settlements.get(hour); }
+
+  registerName(name: string, wallet: string): void { this.registrations.set(name, wallet); }
+  resolveName(name: string): string | undefined { return this.registrations.get(name); }
 }

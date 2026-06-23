@@ -50,7 +50,27 @@ export class SqliteMatchStore implements MatchStoreApi {
         hour INTEGER PRIMARY KEY,
         json TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS registrations (
+        name   TEXT PRIMARY KEY,
+        wallet TEXT NOT NULL
+      );
     `);
+  }
+
+  registerName(name: string, wallet: string): void {
+    this.db
+      .prepare(
+        `INSERT INTO registrations (name, wallet) VALUES (?, ?)
+         ON CONFLICT(name) DO UPDATE SET wallet = excluded.wallet`
+      )
+      .run(name, wallet);
+  }
+
+  resolveName(name: string): string | undefined {
+    const row = this.db
+      .prepare(`SELECT wallet FROM registrations WHERE name = ?`)
+      .get(name) as { wallet: string } | undefined;
+    return row?.wallet;
   }
 
   addMatch(r: MatchResult): void {
