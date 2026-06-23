@@ -133,6 +133,26 @@ function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }) {
     fire.addEventListener('touchstart', (e) => { e.preventDefault(); x.Cmd_ExecuteString('+attack') }, { passive: false })
     const fireEnd = (e: TouchEvent) => { e.preventDefault(); x.Cmd_ExecuteString('-attack') }
     fire.addEventListener('touchend', fireEnd, { passive: false }); fire.addEventListener('touchcancel', fireEnd)
+
+    // Look/aim: right-side drag zone. Mouse injection doesn't reach the engine on
+    // mobile, so use the keyboard-look button commands (+left/+right/+lookup/
+    // +lookdown) — the same Cmd_ExecuteString path that move uses. Joystick-style:
+    // hold the drag off-center to keep turning that way; release to stop.
+    const look = document.getElementById('mlook')
+    x.Cmd_ExecuteString('cl_yawspeed 280')
+    x.Cmd_ExecuteString('cl_pitchspeed 240')
+    let lookId: number | null = null, lsx = 0, lsy = 0
+    const clearLook = () => ['left', 'right', 'lookup', 'lookdown'].forEach((c) => set(c, false))
+    const lookMove = (t: Touch) => {
+        const dx = t.clientX - lsx, dy = t.clientY - lsy
+        const dz = 16
+        set('right', dx > dz); set('left', dx < -dz)
+        set('lookup', dy < -dz); set('lookdown', dy > dz)
+    }
+    look?.addEventListener('touchstart', (e) => { e.preventDefault(); const t = e.changedTouches[0]; lookId = t.identifier; lsx = t.clientX; lsy = t.clientY }, { passive: false })
+    look?.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of Array.from(e.changedTouches)) if (t.identifier === lookId) lookMove(t) }, { passive: false })
+    const lookEnd = (e: TouchEvent) => { for (const t of Array.from(e.changedTouches)) if (t.identifier === lookId) { lookId = null; clearLook() } }
+    look?.addEventListener('touchend', lookEnd); look?.addEventListener('touchcancel', lookEnd)
 }
 
 async function main() {

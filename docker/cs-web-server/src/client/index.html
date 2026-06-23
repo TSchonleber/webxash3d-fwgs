@@ -83,6 +83,8 @@
         /* lightweight DOM touch controls (no engine textures -> no OOM) */
         #mctl{ position:fixed; inset:0; z-index:7; pointer-events:none }
         #mctl > *{ pointer-events:auto; touch-action:none; -webkit-user-select:none; user-select:none }
+        /* right-side drag area for look/aim (transparent; sits under the fire button) */
+        #mlook{ position:fixed; right:0; top:0; bottom:0; width:56% }
         #mpad{ position:fixed; left:20px; bottom:20px; width:132px; height:132px; border-radius:50%;
                background:rgba(255,255,255,.05); border:1px solid rgba(198,255,61,.45) }
         #mnub{ position:absolute; left:50%; top:50%; width:56px; height:56px; margin:-28px 0 0 -28px; border-radius:50%;
@@ -124,6 +126,7 @@
     <div class="rtap">▸ Tap to play anyway</div>
 </div>
 <div id="mctl" hidden>
+    <div id="mlook"></div>
     <div id="mpad"><div id="mnub"></div></div>
     <div id="mfire">FIRE</div>
 </div>
