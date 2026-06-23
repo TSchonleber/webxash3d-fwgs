@@ -7,6 +7,7 @@ type MatchPlayer struct {
 	Won           bool   `json:"won"`
 	Kills         int    `json:"kills"`
 	Deaths        int    `json:"deaths"`
+	BestStreak    int    `json:"bestStreak"` // longest kills-without-dying streak in the match
 	Headshots     int    `json:"headshots"`
 	ShotsFired    int    `json:"shotsFired"`
 	ShotsHit      int    `json:"shotsHit"`

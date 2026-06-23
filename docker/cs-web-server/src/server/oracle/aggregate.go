@@ -6,6 +6,7 @@ type Resolver func(uid int) (string, bool)
 type stat struct {
 	team                  string
 	kills, deaths, headsh int
+	streak, bestStreak    int // current kills-without-dying run, and the max this match
 }
 
 type Aggregator struct {
@@ -43,8 +44,15 @@ func (a *Aggregator) Add(ev Event) {
 	case EnterEvent:
 		a.ensure(e.UID, "")
 	case KillEvent:
-		a.ensure(e.KillerUID, e.KillerTeam).kills++
-		a.ensure(e.VictimUID, e.VictimTeam).deaths++
+		ks := a.ensure(e.KillerUID, e.KillerTeam)
+		ks.kills++
+		ks.streak++
+		if ks.streak > ks.bestStreak {
+			ks.bestStreak = ks.streak
+		}
+		vs := a.ensure(e.VictimUID, e.VictimTeam)
+		vs.deaths++
+		vs.streak = 0
 	case HeadshotEvent:
 		a.ensure(e.UID, "").headsh++
 	case TeamWinEvent:
@@ -69,7 +77,7 @@ func (a *Aggregator) Finalize(endedAtMs int64) MatchResult {
 		}
 		res.Players = append(res.Players, MatchPlayer{
 			Wallet: wallet, Team: s.team, Won: s.team != "" && s.team == winTeam,
-			Kills: s.kills, Deaths: s.deaths, Headshots: s.headsh,
+			Kills: s.kills, Deaths: s.deaths, BestStreak: s.bestStreak, Headshots: s.headsh,
 			ShotsFired: 0, ShotsHit: 0, AvgReactionMs: 300, // benign defaults (no telemetry in logs)
 		})
 	}
