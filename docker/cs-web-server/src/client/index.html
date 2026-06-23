@@ -79,6 +79,19 @@
         @keyframes rot{ 0%,100%{ transform:rotate(-12deg) } 50%{ transform:rotate(78deg) } }
         /* hard-hide when dismissed (inline style wins over the media query) */
         @media (orientation:portrait) and (pointer:coarse){ #rotate:not([hidden]){ display:flex } }
+
+        /* lightweight DOM touch controls (no engine textures -> no OOM) */
+        #mctl{ position:fixed; inset:0; z-index:7; pointer-events:none }
+        #mctl > *{ pointer-events:auto; touch-action:none; -webkit-user-select:none; user-select:none }
+        #mpad{ position:fixed; left:20px; bottom:20px; width:132px; height:132px; border-radius:50%;
+               background:rgba(255,255,255,.05); border:1px solid rgba(198,255,61,.45) }
+        #mnub{ position:absolute; left:50%; top:50%; width:56px; height:56px; margin:-28px 0 0 -28px; border-radius:50%;
+               background:rgba(198,255,61,.5); border:1px solid rgba(198,255,61,.8) }
+        #mfire{ position:fixed; right:24px; bottom:30px; width:100px; height:100px; border-radius:50%;
+                display:flex; align-items:center; justify-content:center;
+                background:rgba(255,46,136,.16); border:2px solid rgba(255,46,136,.75); color:var(--txt);
+                font-family:'Oxanium',sans-serif; font-weight:800; font-size:15px; letter-spacing:1px }
+        #mfire:active{ background:rgba(255,46,136,.34) }
     </style>
 </head>
 <body>
@@ -109,6 +122,10 @@
     <div class="rt">Rotate your device</div>
     <div class="rs">ChainStrike plays best in landscape</div>
     <div class="rtap">▸ Tap to play anyway</div>
+</div>
+<div id="mctl" hidden>
+    <div id="mpad"><div id="mnub"></div></div>
+    <div id="mfire">FIRE</div>
 </div>
 </body>
 </html>

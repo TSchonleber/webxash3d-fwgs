@@ -94,6 +94,47 @@ async function fetchWithProgress(url: string) {
     return blob.arrayBuffer()
 }
 
+// Lightweight DOM touch controls (move pad + fire). Inputs are injected via the
+// engine's +/- button commands, so there are no textures to load (no OOM) and the
+// transport is untouched. Step 1: move + fire; look/jump/etc come next.
+function setupTouchControls(x: { Cmd_ExecuteString: (cmd: string) => void }) {
+    const mctl = document.getElementById('mctl')
+    const pad = document.getElementById('mpad')
+    const nub = document.getElementById('mnub')
+    const fire = document.getElementById('mfire')
+    if (!mctl || !pad || !nub || !fire) return
+    mctl.hidden = false
+
+    const active = new Set<string>()
+    const set = (cmd: string, on: boolean) => {
+        if (on && !active.has(cmd)) { active.add(cmd); x.Cmd_ExecuteString('+' + cmd) }
+        else if (!on && active.has(cmd)) { active.delete(cmd); x.Cmd_ExecuteString('-' + cmd) }
+    }
+    const clearMove = () => { ['forward', 'back', 'moveleft', 'moveright'].forEach((c) => set(c, false)); nub.style.transform = '' }
+
+    let padId: number | null = null
+    const padMove = (t: Touch) => {
+        const r = pad.getBoundingClientRect()
+        const max = r.width / 2
+        let dx = t.clientX - (r.left + max)
+        let dy = t.clientY - (r.top + max)
+        const dist = Math.hypot(dx, dy)
+        if (dist > max) { dx *= max / dist; dy *= max / dist }
+        nub.style.transform = `translate(${dx}px, ${dy}px)`
+        const dz = max * 0.28
+        set('forward', dy < -dz); set('back', dy > dz)
+        set('moveleft', dx < -dz); set('moveright', dx > dz)
+    }
+    pad.addEventListener('touchstart', (e) => { e.preventDefault(); const t = e.changedTouches[0]; padId = t.identifier; padMove(t) }, { passive: false })
+    pad.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of Array.from(e.changedTouches)) if (t.identifier === padId) padMove(t) }, { passive: false })
+    const padEnd = (e: TouchEvent) => { for (const t of Array.from(e.changedTouches)) if (t.identifier === padId) { padId = null; clearMove() } }
+    pad.addEventListener('touchend', padEnd); pad.addEventListener('touchcancel', padEnd)
+
+    fire.addEventListener('touchstart', (e) => { e.preventDefault(); x.Cmd_ExecuteString('+attack') }, { passive: false })
+    const fireEnd = (e: TouchEvent) => { e.preventDefault(); x.Cmd_ExecuteString('-attack') }
+    fire.addEventListener('touchend', fireEnd, { passive: false }); fire.addEventListener('touchcancel', fireEnd)
+}
+
 async function main() {
     // Load dynamic configuration from server (environment variables)
     const config = await fetch("/config").then(res => res.json()) as Awaited<{
@@ -172,7 +213,12 @@ async function main() {
 
     const username = await usernamePromise
     x.main()
-    if (touchControls.checked) {
+    // Mobile gets the lightweight DOM control overlay — the engine's touch_enable
+    // loads a button texture set that OOMs low-memory phones. Desktop = kbd+mouse.
+    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints ?? 0) > 0
+    if (isTouchDevice) {
+        setupTouchControls(x)
+    } else if (touchControls.checked) {
         x.Cmd_ExecuteString('touch_enable 1')
     }
     x.Cmd_ExecuteString(`name "${username}"`)
