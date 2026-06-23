@@ -17,6 +17,7 @@ export const DISTRIBUTOR_PROGRAM_ID =
 export const TOKEN_MINT = import.meta.env.VITE_TOKEN_MINT ?? "";
 export const MIN_HOLD = Number(import.meta.env.VITE_MIN_HOLD ?? 1000);
 export const GATE_BYPASS = import.meta.env.VITE_GATE_BYPASS === "1";
+export const TOKEN_SYMBOL = import.meta.env.VITE_TOKEN_SYMBOL ?? "$TOKEN";
 
 // A deterministic demo wallet shown in dev-bypass so the UI is fully populated.
 export const DEMO_WALLET = "Dmo7xAshArEna1111111111111111111111111111111";

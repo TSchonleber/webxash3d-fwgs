@@ -12,7 +12,7 @@ import {
   useExportWallet,
   useSignAndSendTransaction,
 } from "@privy-io/react-auth/solana";
-import { DEV_BYPASS, RPC_URL } from "../lib/config";
+import { DEV_BYPASS, RPC_URL, TOKEN_MINT, TOKEN_SYMBOL } from "../lib/config";
 import { useAuth } from "../lib/auth";
 
 /**
@@ -66,6 +66,7 @@ function PrivyWalletPanel() {
   const isEmbedded = w?.walletClientType === "privy" || w?.connectorType === "embedded";
 
   const [balance, setBalance] = useState<number | null>(null);
+  const [tokenBal, setTokenBal] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [to, setTo] = useState("");
   const [amount, setAmount] = useState("");
@@ -74,12 +75,26 @@ function PrivyWalletPanel() {
 
   const refresh = useCallback(async () => {
     if (!address) return;
+    const conn = new Connection(RPC_URL, "confirmed");
+    const owner = new PublicKey(address);
     try {
-      const conn = new Connection(RPC_URL, "confirmed");
-      const lamports = await conn.getBalance(new PublicKey(address));
+      const lamports = await conn.getBalance(owner);
       setBalance(lamports / LAMPORTS_PER_SOL);
     } catch {
-      /* leave previous balance */
+      /* leave previous SOL balance */
+    }
+    if (TOKEN_MINT) {
+      try {
+        const res = await conn.getParsedTokenAccountsByOwner(owner, { mint: new PublicKey(TOKEN_MINT) });
+        let total = 0;
+        for (const { account } of res.value) {
+          const amt = account.data.parsed?.info?.tokenAmount?.uiAmount;
+          if (typeof amt === "number") total += amt;
+        }
+        setTokenBal(total);
+      } catch {
+        /* leave previous token balance */
+      }
     }
   }, [address]);
 
@@ -150,6 +165,16 @@ function PrivyWalletPanel() {
       <div className="wallet-bal">
         <span className="wallet-bal-num mono">{balance === null ? "—" : balance.toFixed(4)}</span>
         <span className="wallet-bal-unit">SOL</span>
+      </div>
+      <div className="wallet-token mono">
+        {TOKEN_MINT ? (
+          <>
+            <span className="wallet-token-amt">{tokenBal === null ? "—" : tokenBal.toLocaleString()}</span>
+            <span className="wallet-token-sym">{TOKEN_SYMBOL}</span>
+          </>
+        ) : (
+          <span className="wallet-token-soon">{TOKEN_SYMBOL} · not live yet</span>
+        )}
       </div>
 
       <label className="wallet-label">Your deposit address</label>
