@@ -60,6 +60,11 @@ function PrivyWalletPanel() {
   const { exportWallet } = useExportWallet();
   const { signAndSendTransaction } = useSignAndSendTransaction();
 
+  // Export (reveal private key) only works for Privy embedded wallets — Privy
+  // never holds the key for a connected external wallet (Phantom/Solflare).
+  const w = wallet as { walletClientType?: string; connectorType?: string } | undefined;
+  const isEmbedded = w?.walletClientType === "privy" || w?.connectorType === "embedded";
+
   const [balance, setBalance] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [to, setTo] = useState("");
@@ -155,7 +160,9 @@ function PrivyWalletPanel() {
 
       <div className="wallet-actions">
         <button className="btn ghost" onClick={() => fundWallet({ address })}>Fund</button>
-        <button className="btn ghost" onClick={() => exportWallet({ address })}>Export to Phantom</button>
+        {isEmbedded && (
+          <button className="btn ghost" onClick={() => exportWallet({ address })}>Export key</button>
+        )}
       </div>
 
       <label className="wallet-label">Withdraw SOL</label>
