@@ -223,7 +223,13 @@ export class Xash3DWebRTC extends Xash3D {
         // Fetch Cloudflare TURN/STUN creds (server-side generated). On any failure we
         // fall back to a direct connection, so this can't regress working players.
         try {
-            const r = await fetch('https://api.chainstrike.fun/ice', { cache: 'no-store' })
+            // Hard 1.5s timeout: the ICE fetch must NEVER block the connect. If the
+            // backend is slow/degraded we fall straight through to a direct connection
+            // rather than hang the player at the spawn step (which emptied the board).
+            const ctrl = new AbortController()
+            const to = setTimeout(() => ctrl.abort(), 1500)
+            const r = await fetch('https://api.chainstrike.fun/ice', { cache: 'no-store', signal: ctrl.signal })
+            clearTimeout(to)
             const d = await r.json() as { iceServers?: RTCIceServer[] }
             this.iceServers = Array.isArray(d.iceServers) ? d.iceServers : []
         } catch {
