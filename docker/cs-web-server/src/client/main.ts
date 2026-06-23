@@ -299,6 +299,15 @@ async function main() {
         files_map: Record<string, string>;
     }>
 
+    // Android/mobile FPS: the engine sizes the canvas backing as clientSize ×
+    // devicePixelRatio. Phones run DPR 2.5–4, so it renders 6–16× the pixels it needs
+    // and the framerate tanks. Cap the effective DPR to 1 on touch devices BEFORE the
+    // engine reads it — CSS still stretches the canvas full-screen, just upscaled.
+    const isTouchDev = window.matchMedia('(pointer: coarse)').matches || (navigator.maxTouchPoints ?? 0) > 0
+    if (isTouchDev) {
+        try { Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: () => 1 }) } catch { /* read-only on some browsers */ }
+    }
+
     // Use URLs directly from server config (no imports needed)
     const x = new Xash3DWebRTC({
         canvas: document.getElementById('canvas') as HTMLCanvasElement,
