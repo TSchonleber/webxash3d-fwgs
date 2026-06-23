@@ -33,6 +33,21 @@ const blockConsoleKey = (e: KeyboardEvent) => {
 window.addEventListener('keydown', blockConsoleKey, true)
 window.addEventListener('keyup', blockConsoleKey, true)
 
+// Mobile audio unlock: browsers start every AudioContext suspended until a user
+// gesture, and our control overlay can starve the engine's own unlock. Patch the
+// constructor (before the engine creates its context) to capture instances, then
+// resume them on the first tap/click. Keeps resuming in case iOS re-suspends.
+const audioCtxs: AudioContext[] = []
+for (const key of ['AudioContext', 'webkitAudioContext'] as const) {
+    const Orig = (window as unknown as Record<string, typeof AudioContext>)[key]
+    if (!Orig) continue
+    ;(window as unknown as Record<string, unknown>)[key] = class extends Orig {
+        constructor(...args: ConstructorParameters<typeof AudioContext>) { super(...args); audioCtxs.push(this) }
+    }
+}
+const resumeAudio = () => { for (const c of audioCtxs) if (c.state === 'suspended') c.resume().catch(() => {}) }
+for (const ev of ['touchend', 'pointerup', 'click']) window.addEventListener(ev, resumeAudio)
+
 const touchControls = document.getElementById('touchControls') as HTMLInputElement
 touchControls.addEventListener('change', () => {
     localStorage.setItem('touchControls', String(touchControls.checked))
