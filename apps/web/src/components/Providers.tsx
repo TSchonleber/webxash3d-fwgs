@@ -1,11 +1,16 @@
 import type { ReactNode } from "react";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
+import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
 import { AppContextProvider } from "../lib/context";
 import { AuthProvider } from "../lib/auth";
-import { DEV_BYPASS, PRIVY_APP_ID } from "../lib/config";
+import { DEV_BYPASS, PRIVY_APP_ID, RPC_URL } from "../lib/config";
 
 const solanaConnectors = toSolanaWalletConnectors();
+
+// Privy needs a Solana RPC configured to send transactions; without it,
+// withdraw/swap fail with "No RPC configuration found for chain solana:mainnet".
+const SOLANA_WS = RPC_URL.replace(/^http/, "ws");
 
 /**
  * Root providers.
@@ -34,6 +39,17 @@ export function Providers({ children }: { children: ReactNode }) {
           walletList: ["phantom", "jupiter", "solflare", "detected_solana_wallets", "backpack"],
         },
         loginMethods: ["email", "wallet"],
+        solana: {
+          rpcs: {
+            // Casts work around a generic-variance mismatch between the app's
+            // @solana/kit and Privy's expected Rpc type; the runtime clients are
+            // valid mainnet RPC/subscriptions.
+            "solana:mainnet": {
+              rpc: createSolanaRpc(RPC_URL) as never,
+              rpcSubscriptions: createSolanaRpcSubscriptions(SOLANA_WS) as never,
+            },
+          },
+        },
         externalWallets: { solana: { connectors: solanaConnectors } },
         embeddedWallets: {
           // Sign + send transactions programmatically without Privy's modal
