@@ -99,15 +99,19 @@ export function Home() {
         </aside>
       </section>
 
-      {/* CONTRACT ADDRESS — shown once the token mint is configured */}
-      {TOKEN_MINT && (
-        <section className="ca-strip">
-          <span className="ca-label">{TOKEN_SYMBOL} CONTRACT</span>
-          <code className="ca-addr mono">{TOKEN_MINT}</code>
-          <button className="ca-copy" onClick={copyCA}>{caCopied ? "Copied" : "Copy"}</button>
-          <a className="ca-link" href={`https://solscan.io/token/${TOKEN_MINT}`} target="_blank" rel="noreferrer">Solscan ↗</a>
-        </section>
-      )}
+      {/* CONTRACT ADDRESS — placeholder pre-launch, real CA + copy once minted */}
+      <section className="ca-strip">
+        <span className="ca-label">{TOKEN_SYMBOL} CONTRACT</span>
+        {TOKEN_MINT ? (
+          <>
+            <code className="ca-addr mono">{TOKEN_MINT}</code>
+            <button className="ca-copy" onClick={copyCA}>{caCopied ? "Copied" : "Copy"}</button>
+            <a className="ca-link" href={`https://solscan.io/token/${TOKEN_MINT}`} target="_blank" rel="noreferrer">Solscan ↗</a>
+          </>
+        ) : (
+          <span className="ca-soon mono">Address posts here at token launch</span>
+        )}
+      </section>
 
       {/* HOW IT WORKS — a typed sequence (drop -> frag -> paid) */}
       <section className="home-how">

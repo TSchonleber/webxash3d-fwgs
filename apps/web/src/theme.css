@@ -157,6 +157,7 @@
 .ca-strip { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; padding: var(--s4) 0; border-top: 1px solid var(--line); }
 .ca-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; color: var(--lime); white-space: nowrap; }
 .ca-addr { flex: 1; min-width: 220px; font-size: 13px; color: var(--text); word-break: break-all; }
+.ca-soon { flex: 1; min-width: 200px; font-size: 13px; color: var(--text-faint); }
 .ca-copy { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink); background: var(--lime); border: 0; border-radius: var(--r); padding: 8px 13px; cursor: pointer; min-height: 0; }
 .ca-copy:hover { filter: brightness(1.08); }
 .ca-link { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); text-decoration: none; white-space: nowrap; }
