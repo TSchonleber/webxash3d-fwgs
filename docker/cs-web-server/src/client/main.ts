@@ -263,8 +263,11 @@ function setupChat(x: { Cmd_ExecuteString: (cmd: string) => void }): boolean {
 }
 
 async function main() {
+    // The selected session ('' = de_train, '/d2' = de_dust2). Set by startGame()
+    // before main() runs; routes /config, /players and the engine connection.
+    const serverPath = (window as unknown as { __csServerPath?: string }).__csServerPath || ''
     // Load dynamic configuration from server (environment variables)
-    const config = await fetch("/config").then(res => res.json()) as Awaited<{
+    const config = await fetch(`${serverPath}/config`).then(res => res.json()) as Awaited<{
         arguments: string[];
         console: string[];
         game_dir: string;
@@ -410,7 +413,7 @@ async function main() {
     const checkQueue = async () => {
         if (joined) return
         try {
-            const res = await fetch('/players', { cache: 'no-store' })
+            const res = await fetch(`${serverPath}/players`, { cache: 'no-store' })
             const { count, max } = (await res.json()) as { count: number; max: number }
             if (count < max) { doJoin(); return }
             // full — show the queue and keep polling
@@ -465,8 +468,7 @@ document.getElementById('spectate')!.addEventListener('click', () => {
 })
 
 // ?name=<callsign> -> the dashboard launched us with a registered callsign;
-// skip the form and drop straight in under that exact name (so the leaderboard
-// resolves it to the player's wallet for payouts).
+// skip the form and drop straight in (the name resolves to the player's wallet).
 const presetName = new URLSearchParams(window.location.search).get('name')
 if (presetName && !spectateMode) {
     localStorage.setItem('username', presetName)
@@ -482,23 +484,13 @@ if (spectateMode) {
 }
 
 // ============================================================================
-// PRE-LAUNCH LOCK  (ticker: $CS)
-// Game is closed to the public until the $CS token launches. Operator/demo bypass:
-//   https://game.chainstrike.fun/?key=cs-unlock-7f3aq92k   (remembered per-device)
-//
-// HOW TO OPEN THE GAME AT LAUNCH (once the CA + token gating are implemented):
-//   1. Stand up the real 1000-$CS gate enforced SERVER-SIDE (don't rely on this
-//      client flag — direct game URLs bypass client checks):
-//        - dashboard (apps/web) verifies the player's wallet holds >=1000 $CS
-//          (VITE_TOKEN_MINT = the $CS CA, VITE_MIN_HOLD=1000, VITE_GATE_BYPASS=0),
-//          then mints a short-lived signed pass and opens the game with it;
-//        - cs-web-server validates that pass before allowing the connect.
-//   2. THEN set LOCKED = false here (optionally delete the #locked screen +
-//      BYPASS_KEY), rebuild the client (vite build, root=src/client) and redeploy:
-//      rsync src/client/dist -> box, restart cs-web-server-dm-1 (dist is bind-mounted).
-// Until step 1 exists, leave LOCKED = true so no one plays for free.
+// PRE-LAUNCH LOCK (ticker: $CS) — currently OPEN.
+// To re-lock pre-token-gate: set LOCKED = true. To open at $CS launch WITH a real
+// gate, first build the server-side >=1000 $CS check (dashboard verifies the
+// wallet balance -> signed pass -> cs-web-server validates before connect), then
+// keep LOCKED = false. The client flag alone is bypassable via the direct URL.
 // ============================================================================
-const LOCKED = false   // OPEN to the public. No token gate for now; flip back to true to re-lock pre-gate.
+const LOCKED = false
 const BYPASS_KEY = 'cs-unlock-7f3aq92k'
 if (new URLSearchParams(window.location.search).get('key') === BYPASS_KEY) {
     localStorage.setItem('cs_unlock', BYPASS_KEY)
@@ -508,7 +500,7 @@ const unlocked = !LOCKED || localStorage.getItem('cs_unlock') === BYPASS_KEY
 if (!unlocked) {
     // Show the lock screen and do NOT load/connect the game.
     const lk = document.getElementById('locked'); if (lk) lk.style.display = 'flex'
-    const f = document.getElementById('form'); if (f) f.style.display = 'none'
+    form.style.display = 'none'
 } else {
     main()
     // Robust mobile-control bootstrap: wire controls once the engine + elements are

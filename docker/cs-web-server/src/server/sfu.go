@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -77,6 +78,11 @@ var (
 	listLock        sync.RWMutex
 	peerConnections []*peerConnectionState
 	trackLocals     map[string]*webrtc.TrackLocalStaticRTP
+
+	// activePlayers: live connection count for /players. Incremented when a client
+	// handler starts, decremented when it returns — so it can't leak the way
+	// len(peerConnections) does (stale Connected peers never get reaped).
+	activePlayers int64
 
 	log = logging.NewDefaultLoggerFactory().NewLogger("sfu-ws")
 )
@@ -314,6 +320,10 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) { // nolint
 
 	// When this frame returns close the PeerConnection
 	defer peerConnection.Close() //nolint
+
+	// Count this client for /players; release on disconnect (handler return).
+	atomic.AddInt64(&activePlayers, 1)
+	defer atomic.AddInt64(&activePlayers, -1)
 
 	// Accept one audio track incoming
 	for _, typ := range []webrtc.RTPCodecType{webrtc.RTPCodecTypeAudio} {
@@ -649,19 +659,11 @@ func init() {
 const maxPlayers = 30
 
 // playersHandler reports the live connected count vs capacity so the client can
-// show a join queue when the match is full. Counts only peers in the Connected
-// state — the peerConnections slice retains stale Failed/Disconnected entries
-// (only Closed ones are reaped), so len() would massively over-count.
+// show a join queue when the match is full. Uses the activePlayers atomic counter
+// (inc on connect, dec on disconnect) — len(peerConnections) over-counts because
+// stale Connected/Failed peers aren't reliably reaped.
 func playersHandler(w http.ResponseWriter, _ *http.Request) {
-	listLock.RLock()
-	count := 0
-	for _, pc := range peerConnections {
-		if pc != nil && pc.peerConnection != nil &&
-			pc.peerConnection.ConnectionState() == webrtc.PeerConnectionStateConnected {
-			count++
-		}
-	}
-	listLock.RUnlock()
+	count := int(atomic.LoadInt64(&activePlayers))
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	_ = json.NewEncoder(w).Encode(map[string]int{"count": count, "max": maxPlayers})

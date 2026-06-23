@@ -156,7 +156,11 @@ export class Xash3DWebRTC extends Xash3D {
                     break
             }
         }
-        this.ws = new WebSocket(`${protocol}://${host}/websocket`);
+        // Server selection: the chosen session sets __csServerPath ('' = de_train,
+        // '/d2' = de_dust2) before the engine connects, routing the signaling socket
+        // (and thus the WebRTC game tunnel) to that server via Caddy.
+        const serverPath = (window as unknown as { __csServerPath?: string }).__csServerPath || ''
+        this.ws = new WebSocket(`${protocol}://${host}${serverPath}/websocket`);
         this.ws.onerror = () => {
             this.connectWs()
         }
