@@ -9,6 +9,7 @@ type Event interface{ isEvent() }
 
 type KillEvent struct {
 	KillerUID, VictimUID   int
+	KillerName, VictimName string
 	KillerTeam, VictimTeam string
 	Weapon                 string
 }
@@ -40,8 +41,8 @@ func atoi(s string) int { n, _ := strconv.Atoi(s); return n }
 func ParseLine(line string) (Event, bool) {
 	if m := reKill.FindStringSubmatch(line); m != nil {
 		return KillEvent{
-			KillerUID: atoi(m[2]), KillerTeam: m[3],
-			VictimUID: atoi(m[5]), VictimTeam: m[6], Weapon: m[7],
+			KillerUID: atoi(m[2]), KillerName: m[1], KillerTeam: m[3],
+			VictimUID: atoi(m[5]), VictimName: m[4], VictimTeam: m[6], Weapon: m[7],
 		}, true
 	}
 	if m := reHeadshot.FindStringSubmatch(line); m != nil {

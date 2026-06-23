@@ -39,7 +39,15 @@ func (r *MatchRunner) Feed(line string) {
 	case EnterEvent:
 		r.names[e.UID] = e.Name
 	case KillEvent:
-		// names may be embedded only in enter lines; kills carry uids — names already tracked
+		// Kill lines carry names too — record them so capture survives a logsidecar
+		// restart (tail -0) that missed a player's enter line. Without this, existing
+		// players' kills get dropped (unresolved uid) until they happen to rejoin.
+		if e.KillerName != "" {
+			r.names[e.KillerUID] = e.KillerName
+		}
+		if e.VictimName != "" {
+			r.names[e.VictimUID] = e.VictimName
+		}
 	}
 	r.agg.Add(ev)
 }
