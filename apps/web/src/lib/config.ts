@@ -31,12 +31,15 @@ export const SWAP_SLIPPAGE_BPS = Number(import.meta.env.VITE_SWAP_SLIPPAGE_BPS ?
 // A deterministic demo wallet shown in dev-bypass so the UI is fully populated.
 export const DEMO_WALLET = "Dmo7xAshArEna1111111111111111111111111111111";
 
-/** UTC hour bucket (unix-hours) used as the period id, matching the backend. */
+// Payout period — MUST match services/reward-backend/src/period.ts (15 min).
+export const PERIOD_MS = 900_000;
+
+/** Period-index id used as the period id, matching the backend. */
 export function currentUtcHour(now: number = Date.now()): number {
-  return Math.floor(now / 1_800_000); // 30-min period
+  return Math.floor(now / PERIOD_MS);
 }
 
-/** ms remaining until the top of the next UTC hour. */
+/** ms remaining until the next payout period boundary. */
 export function msToNextHour(now: number = Date.now()): number {
-  return 1_800_000 - (now % 1_800_000);
+  return PERIOD_MS - (now % PERIOD_MS);
 }

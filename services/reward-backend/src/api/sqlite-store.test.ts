@@ -5,8 +5,9 @@ import { rmSync } from "node:fs";
 import { SqliteMatchStore } from "./sqlite-store";
 import type { MatchResult } from "../types";
 import type { Settlement } from "../settle";
+import { PERIOD_MS } from "../period";
 
-const HOUR = 100 * 1_800_000; // start of period 100 (30-min buckets)
+const HOUR = 100 * PERIOD_MS; // start of period 100
 const mk = (id: string, endedAtMs: number, kills = 0): MatchResult => ({
   matchId: id, endedAtMs,
   players: [{ wallet: "Wallet111", team: "A", won: true, kills, deaths: 1, headshots: 0, shotsFired: 10, shotsHit: 5, avgReactionMs: 300 }],
@@ -44,7 +45,7 @@ describe("SqliteMatchStore", () => {
     const s = open(tmpPath());
     s.addMatch(mk("a", HOUR + 5));
     s.addMatch(mk("b", HOUR + 999));
-    s.addMatch(mk("c", 101 * 1_800_000));
+    s.addMatch(mk("c", 101 * PERIOD_MS));
     expect(s.matchesForHour(100).map((x) => x.matchId)).toEqual(["a", "b"]);
     expect(s.matchesForHour(101).map((x) => x.matchId)).toEqual(["c"]);
   });

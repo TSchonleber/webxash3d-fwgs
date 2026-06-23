@@ -18,7 +18,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         <h1>Enter ChainStrike</h1>
         <p>
           Log in to track your live ranking, watch the prize pool, and claim your cut
-          of the 30-min settlement. Email or connect a Solana wallet.
+          of the 15-min settlement. Email or connect a Solana wallet.
         </p>
         <button className="btn" disabled={!ready} onClick={login}>
           {ready ? "Log in / Connect Wallet" : "Loading…"}

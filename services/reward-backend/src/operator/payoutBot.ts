@@ -29,7 +29,7 @@ const TOP_N = Number(process.env.TOP_N ?? 7);
 const WEIGHTS = (process.env.WEIGHTS ?? "30,22,16,12,9,7,4").split(",").map(Number);
 const MIN_KILLS = Number(process.env.MIN_KILLS ?? 1);
 const FEE_BUFFER_SOL = Number(process.env.FEE_BUFFER_SOL ?? 0.01);
-const PERIOD_MS = 1_800_000;
+const PERIOD_MS = 900_000;   // 15-min payout periods
 
 interface Entry { wallet: string; kills?: number; rank?: number; }
 type PaidLog = Record<string, { winners: unknown; ts: number }>;

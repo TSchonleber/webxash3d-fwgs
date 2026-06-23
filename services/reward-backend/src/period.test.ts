@@ -1,14 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { utcHourBucket } from "./period";
+import { utcHourBucket, PERIOD_MS } from "./period";
 
-describe("utcHourBucket (30-min periods)", () => {
-  it("maps a timestamp to its 30-minute period index", () => {
-    expect(utcHourBucket(2 * 1_800_000 + 10 * 60_000)).toBe(2);
+describe("utcHourBucket (payout periods)", () => {
+  it("maps a timestamp to its period index", () => {
+    expect(utcHourBucket(2 * PERIOD_MS + PERIOD_MS / 3)).toBe(2);
   });
   it("is stable within a period and increments across the boundary", () => {
-    const base = 100 * 1_800_000;
+    const base = 100 * PERIOD_MS;
     expect(utcHourBucket(base)).toBe(100);
-    expect(utcHourBucket(base + 1_799_999)).toBe(100);
-    expect(utcHourBucket(base + 1_800_000)).toBe(101);
+    expect(utcHourBucket(base + PERIOD_MS - 1)).toBe(100);
+    expect(utcHourBucket(base + PERIOD_MS)).toBe(101);
   });
 });

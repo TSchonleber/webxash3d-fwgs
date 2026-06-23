@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { msToNextHour, API_BASE } from "../lib/config";
+import { msToNextHour, API_BASE, PERIOD_MS } from "../lib/config";
 import { splitClock } from "../lib/format";
 import { RewardApi, type PoolInfo } from "../lib/api";
 
@@ -29,7 +29,7 @@ export function PrizePool({ contenders }: Props) {
   }, []);
 
   const { hh, mm, ss } = splitClock(remaining);
-  const pct = Math.min(100, ((1_800_000 - remaining) / 1_800_000) * 100);
+  const pct = Math.min(100, ((PERIOD_MS - remaining) / PERIOD_MS) * 100);
   const sol = pool ? pool.sol.toLocaleString("en-US", { maximumFractionDigits: 3 }) : "—";
   const vault = pool?.vaultAddress;
 
@@ -42,7 +42,7 @@ export function PrizePool({ contenders }: Props) {
           <span className="unit">SOL</span>
         </h1>
         <p className="prize-sub">
-          Paid in <b>SOL</b> to the top 7 every 30 min from the on-chain vault
+          Paid in <b>SOL</b> to the top 7 every 15 min from the on-chain vault
           {vault ? <> (<span className="mono">{vault.slice(0, 4)}…{vault.slice(-4)}</span>)</> : null}.{" "}
           <b>{contenders}</b> contender{contenders === 1 ? "" : "s"} this round.
         </p>
@@ -57,7 +57,7 @@ export function PrizePool({ contenders }: Props) {
           <span className="sep">:</span>
           <span className="seg">{ss}</span>
         </div>
-        <div className="meta">NEXT PAYOUT · EVERY 30 MIN</div>
+        <div className="meta">NEXT PAYOUT · EVERY 15 MIN</div>
         <div className="bar"><i style={{ width: `${pct}%` }} /></div>
       </div>
     </section>

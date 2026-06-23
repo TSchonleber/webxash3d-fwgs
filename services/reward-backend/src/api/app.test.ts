@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import nacl from "tweetnacl";
 import { Keypair } from "@solana/web3.js";
 import { createApp } from "./app";
+import { PERIOD_MS } from "../period";
 
 // Plan 2's merkle leafHash decodes each wallet as a base58 Solana PublicKey,
 // so the fixture must use valid base58 pubkeys (the plan's "W${i}" strings are
@@ -16,7 +17,7 @@ function signedEnvelope(result: object, kp: nacl.SignKeyPair) {
 
 const hour = 100;
 const matchAt = (id: string) => ({
-  matchId: id, endedAtMs: hour * 1_800_000,
+  matchId: id, endedAtMs: hour * PERIOD_MS,
   players: Array.from({ length: 10 }, (_, i) => ({
     wallet: wallets[i], team: i < 5 ? "A" : "B", won: i < 5, kills: 15 - i, deaths: 5, headshots: 2,
     shotsFired: 100, shotsHit: 40, avgReactionMs: 300,
