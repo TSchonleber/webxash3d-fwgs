@@ -464,3 +464,55 @@ body::after {
 }
 
 .brand .glyph-logo{ width:30px; height:30px; border-radius:7px; object-fit:cover; }
+
+/* ===================== Unified Home (logged-out) ===================== */
+.home { max-width: 1120px; margin: 0 auto; padding: 0 20px 40px; }
+.home-bar { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+.home-signin { padding: 9px 20px; }
+
+.hero { display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 44px; align-items: center; padding: 36px 0 56px; }
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr; gap: 30px; } }
+.eyebrow { display: inline-flex; align-items: center; gap: 9px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.14em; color: var(--text-dim); }
+.eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mag); box-shadow: var(--glow-mag); animation: pulse 1.4s infinite; }
+.hero-copy h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(48px, 8.5vw, 96px); line-height: 0.92; letter-spacing: -0.025em; margin: 16px 0 0; }
+.hero-copy h1 .g { color: var(--lime); text-shadow: var(--glow-lime); }
+.hero-copy > p { color: var(--text-dim); font-size: clamp(15px, 2vw, 18px); max-width: 44ch; margin: 20px 0 0; line-height: 1.5; }
+.hero-cta { display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap; align-items: center; }
+.btn.play { font-size: 17px; padding: 15px 32px; }
+
+.hud { background: linear-gradient(180deg, var(--ink-800), var(--ink-850)); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; box-shadow: 0 30px 80px rgba(0,0,0,0.55); }
+.hud-row { display: flex; align-items: center; justify-content: space-between; }
+.hud-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; color: var(--text-faint); }
+.hud-live { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--mag); }
+.hud-live .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mag); box-shadow: var(--glow-mag); animation: pulse 1.4s infinite; }
+.hud-pool { display: flex; align-items: baseline; gap: 9px; margin: 9px 0 2px; }
+.hud-pool-num { font-family: var(--font-mono); font-size: 46px; font-weight: 600; color: var(--lime); line-height: 1; text-shadow: var(--glow-lime); }
+.hud-pool-unit { font-family: var(--font-mono); font-size: 16px; color: var(--text-dim); }
+.hud-sub { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
+.hud-sep { height: 1px; background: var(--line); margin: 16px 0; }
+.hud-board { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.hud-board li { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px; padding: 7px 8px; border-radius: var(--radius); font-family: var(--font-mono); font-size: 13px; }
+.hud-board li.lead { background: rgba(255, 207, 77, 0.07); }
+.hud-board .hb-rank { color: var(--text-faint); font-size: 12px; }
+.hud-board li.lead .hb-rank { color: var(--gold); }
+.hud-board .hb-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hud-board .hb-kills { color: var(--lime); font-weight: 600; }
+.hud-board .hb-kills i { color: var(--text-faint); font-style: normal; font-size: 11px; }
+.hud-empty { color: var(--text-faint); font-family: var(--font-mono); font-size: 12px; padding: 8px; }
+
+.home-how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; padding: 4px 0 36px; border-top: 1px solid var(--line-soft); }
+@media (max-width: 760px) { .home-how { grid-template-columns: 1fr; } }
+.hw { padding: 26px 0 0; }
+.hw-n { font-family: var(--font-mono); font-size: 12px; color: var(--mag); letter-spacing: 0.1em; }
+.hw h3 { font-family: var(--font-display); font-weight: 800; font-size: 19px; margin: 11px 0 7px; letter-spacing: 0.03em; }
+.hw p { color: var(--text-dim); font-size: 13px; line-height: 1.55; margin: 0; }
+
+.home-foot { display: flex; align-items: center; justify-content: space-between; padding: 24px 0; border-top: 1px solid var(--line-soft); color: var(--text-faint); font-family: var(--font-display); font-weight: 800; }
+.home-foot .mono { font-family: var(--font-mono); font-weight: 400; font-size: 12px; letter-spacing: 0.1em; }
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* fix: empty-state row must span the board grid, not a single column */
+.hud-board li.hud-empty { display: block; grid-column: 1 / -1; line-height: 1.5; }
+
+.hero-note { flex-basis: 100%; font-family: var(--font-mono); font-size: 12px; color: var(--text-faint); max-width: 42ch; line-height: 1.5; margin-top: 2px; }

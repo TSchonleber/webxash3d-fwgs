@@ -1,5 +1,5 @@
 import "./theme.css";
-import { AuthGate } from "./components/AuthGate";
+import { Home } from "./components/Home";
 import { EligibilityBadge } from "./components/EligibilityBadge";
 import { PrizePool } from "./components/PrizePool";
 import { Leaderboard } from "./components/Leaderboard";
@@ -64,12 +64,19 @@ function Dashboard() {
   );
 }
 
+function Root() {
+  const { ready, authenticated } = useAuth();
+  // One app: logged-out shows the marketing home, logged-in reveals the
+  // dashboard. (DEV_BYPASS jumps straight to the dashboard for screenshots.)
+  if (DEV_BYPASS) return <Dashboard />;
+  if (ready && authenticated) return <Dashboard />;
+  return <Home />;
+}
+
 export default function App() {
   return (
     <div className="app">
-      <AuthGate>
-        <Dashboard />
-      </AuthGate>
+      <Root />
     </div>
   );
 }

@@ -7,7 +7,7 @@ import {Xash3DWebRTC} from "./webrtc";
 // menu_emscripten_wasm32.wasm). Its "Quit to Lobby" button can't navigate the
 // browser from inside the wasm sandbox, so it emits the token below (and then
 // quits, firing onExit). Either signal redirects the page here.
-const LOBBY_URL = 'https://54.39.97.84.sslip.io'
+const LOBBY_URL = 'https://chainstrike.fun'
 const QUIT_TOKEN = '__CS_QUIT_LOBBY__'
 let leavingToLobby = false
 function goToLobby() {
@@ -15,6 +15,11 @@ function goToLobby() {
     leavingToLobby = true
     window.location.href = LOBBY_URL
 }
+
+// Keep the browser tab branded — the CS engine renames document.title to
+// "Counter-Strike" once it boots, so re-assert ChainStrike continuously.
+document.title = 'ChainStrike'
+setInterval(() => { if (document.title !== 'ChainStrike') document.title = 'ChainStrike' }, 1000)
 
 const touchControls = document.getElementById('touchControls') as HTMLInputElement
 touchControls.addEventListener('change', () => {
