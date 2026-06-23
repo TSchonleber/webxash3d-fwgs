@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { verifyEnvelope, type SignedEnvelope } from "./verify";
-import { MatchStore } from "./store";
+import { MatchStore, type MatchStoreApi } from "./store";
 import { rankHour } from "../leaderboard";
 import { settleHour } from "../settle";
 import { buildClaimArgs } from "../publisher";
@@ -12,7 +12,7 @@ export interface AppDeps {
   vaultLamports: bigint;
   budgetBps: number;
   isEligible: (wallet: string) => Promise<boolean>;
-  store?: MatchStore;
+  store?: MatchStoreApi;
   adminToken?: string;
   poolReader?: () => Promise<{ vaultAddress: string; lamports: number }>;
 }

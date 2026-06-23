@@ -8,7 +8,7 @@ describe("RewardApi", () => {
   beforeEach(() => { vi.restoreAllMocks(); });
 
   it("fetches the leaderboard for an hour", async () => {
-    const fetchMock = vi.fn().mockReturnValue(json([{ wallet: "W", points: 10, matches: 1, rank: 1 }]));
+    const fetchMock = vi.fn().mockReturnValue(json([{ wallet: "W", kills: 10, deaths: 3, matches: 1, rank: 1 }]));
     vi.stubGlobal("fetch", fetchMock);
     const api = new RewardApi("http://localhost:8787");
     const board = await api.leaderboard(100);

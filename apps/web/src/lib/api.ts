@@ -1,4 +1,4 @@
-export interface RankedEntry { wallet: string; points: number; matches: number; rank: number; }
+export interface RankedEntry { wallet: string; kills: number; deaths: number; matches: number; rank: number; }
 export interface ClaimData { periodId: number; index: number; amount: string; proof: string[]; }
 export interface PoolInfo { vaultAddress: string | null; lamports: number; sol: number; denom: string; }
 

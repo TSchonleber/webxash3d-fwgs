@@ -1,5 +1,7 @@
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
+import { MatchStore } from "./store";
+import { SqliteMatchStore } from "./sqlite-store";
 import { rpcBalanceReader, isHoldEligible } from "../eligibility";
 import { Connection, PublicKey } from "@solana/web3.js";
 
@@ -13,6 +15,13 @@ const PROGRAM = new PublicKey(process.env.DISTRIBUTOR_PROGRAM_ID ?? "6jSjkNJg2ap
 const [VAULT] = PublicKey.findProgramAddressSync([Buffer.from("vault")], PROGRAM);
 const conn = new Connection(RPC, "confirmed");
 const reader = rpcBalanceReader(conn);
+
+// Persist the leaderboard to disk when LEADERBOARD_DB_PATH is set so matches and
+// settlements survive a restart; fall back to in-memory otherwise.
+const DB_PATH = process.env.LEADERBOARD_DB_PATH ?? "";
+const store = DB_PATH ? new SqliteMatchStore(DB_PATH) : new MatchStore();
+console.log(DB_PATH ? `leaderboard persisted to ${DB_PATH}` : "leaderboard in-memory (set LEADERBOARD_DB_PATH to persist)");
+
 const app = createApp({
   allowlist: ALLOWLIST,
   minMatches: Number(process.env.MIN_MATCHES ?? 1),
@@ -20,6 +29,7 @@ const app = createApp({
   budgetBps: Number(process.env.BUDGET_BPS ?? 1000),
   isEligible: (w) => (MINT ? isHoldEligible(reader, w, MINT, MIN_TOKENS) : Promise.resolve(true)),
   poolReader: async () => ({ vaultAddress: VAULT.toBase58(), lamports: await conn.getBalance(VAULT) }),
+  store,
 });
 
 serve({ fetch: app.fetch, port: PORT });

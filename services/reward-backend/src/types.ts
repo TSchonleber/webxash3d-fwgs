@@ -20,7 +20,8 @@ export interface MatchResult {
 
 export interface RankedEntry {
   wallet: string;
-  points: number;
+  kills: number;         // primary ranking metric — most kills wins
+  deaths: number;        // tiebreaker (fewer is better) + display
   matches: number;
   rank: number;          // 1-based
 }

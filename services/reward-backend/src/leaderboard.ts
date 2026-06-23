@@ -2,22 +2,34 @@ import type { MatchResult, RankedEntry } from "./types";
 
 export interface RankOptions { minMatches: number; }
 
-export function matchPoints(p: { won: boolean; kills: number; deaths: number; headshots: number }): number {
-  return Math.max(0, 100 * (p.won ? 1 : 0) + 10 * p.kills - 2 * p.deaths + 5 * p.headshots);
-}
+interface Tally { kills: number; deaths: number; matches: number; }
 
+/**
+ * Ranks players for a payout period by KILLS (the primary metric): most kills is
+ * rank 1 and earns the largest reward, trickling down the payout scale to rank 7.
+ * Ties are broken by fewer deaths, then fewer matches (kill efficiency), then
+ * wallet for a fully deterministic order.
+ */
 export function rankHour(matches: MatchResult[], opts: RankOptions): RankedEntry[] {
-  const points = new Map<string, number>();
-  const counts = new Map<string, number>();
+  const tallies = new Map<string, Tally>();
   for (const m of matches) {
     for (const p of m.players ?? []) {
-      points.set(p.wallet, (points.get(p.wallet) ?? 0) + matchPoints(p));
-      counts.set(p.wallet, (counts.get(p.wallet) ?? 0) + 1);
+      const t = tallies.get(p.wallet) ?? { kills: 0, deaths: 0, matches: 0 };
+      t.kills += p.kills;
+      t.deaths += p.deaths;
+      t.matches += 1;
+      tallies.set(p.wallet, t);
     }
   }
-  const rows = [...points.entries()]
-    .filter(([w]) => (counts.get(w) ?? 0) >= opts.minMatches)
-    .map(([wallet, pts]) => ({ wallet, points: pts, matches: counts.get(wallet)! }))
-    .sort((a, b) => b.points - a.points || a.matches - b.matches || a.wallet.localeCompare(b.wallet));
+  const rows = [...tallies.entries()]
+    .filter(([, t]) => t.matches >= opts.minMatches)
+    .map(([wallet, t]) => ({ wallet, kills: t.kills, deaths: t.deaths, matches: t.matches }))
+    .sort(
+      (a, b) =>
+        b.kills - a.kills ||
+        a.deaths - b.deaths ||
+        a.matches - b.matches ||
+        a.wallet.localeCompare(b.wallet)
+    );
   return rows.map((r, i) => ({ ...r, rank: i + 1 }));
 }

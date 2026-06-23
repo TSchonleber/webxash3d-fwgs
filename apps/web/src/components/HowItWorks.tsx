@@ -7,7 +7,7 @@ const STEPS = [
   {
     n: "02",
     title: "Climb the board",
-    body: "Frags and headshots earn points. The leaderboard resets every 30 minutes, so every round is a fresh shot at the top.",
+    body: "Most kills wins. The leaderboard ranks purely by frags and resets every 30 minutes, so every round is a fresh shot at the top.",
   },
   {
     n: "03",

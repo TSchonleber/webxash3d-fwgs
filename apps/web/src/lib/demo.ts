@@ -10,12 +10,13 @@ const HANDLES = [
 export function demoLeaderboard(): RankedEntry[] {
   const rows: RankedEntry[] = HANDLES.map((h, i) => ({
     wallet: `${h}${"x".repeat(36)}${(40 + i).toString(36)}`,
-    points: Math.round(980 - i * 67 - (i % 3) * 11),
+    kills: 52 - i * 3 - (i % 3),
+    deaths: 14 + i + (i % 2) * 2,
     matches: 12 - Math.floor(i / 2),
     rank: i + 1,
   }));
   // Drop the demo wallet into the mix so the "me" highlight is visible.
-  rows[3] = { wallet: DEMO_WALLET, points: 612, matches: 9, rank: 4 };
+  rows[3] = { wallet: DEMO_WALLET, kills: 41, deaths: 19, matches: 9, rank: 4 };
   return rows;
 }
 

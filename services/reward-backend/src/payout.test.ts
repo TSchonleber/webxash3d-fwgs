@@ -3,7 +3,7 @@ import { computeAwards, WEIGHTS } from "./payout";
 import type { RankedEntry } from "./types";
 
 const board = (n: number): RankedEntry[] =>
-  Array.from({ length: n }, (_, i) => ({ wallet: `w${i}`, points: 1000 - i, matches: 5, rank: i + 1 }));
+  Array.from({ length: n }, (_, i) => ({ wallet: `w${i}`, kills: 1000 - i, deaths: i, matches: 5, rank: i + 1 }));
 
 describe("computeAwards", () => {
   it("splits a 10% pool across top 7 by weight, remainder to rank 1, sum == pool", () => {

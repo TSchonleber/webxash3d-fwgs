@@ -30,7 +30,8 @@ export function Leaderboard({ entries, loading, hour, me }: Props) {
             <tr>
               <th style={{ width: 64 }}>Rank</th>
               <th>Player</th>
-              <th className="num">Points</th>
+              <th className="num">Kills</th>
+              <th className="num">Deaths</th>
               <th className="num">Matches</th>
             </tr>
           </thead>
@@ -45,7 +46,8 @@ export function Leaderboard({ entries, loading, hour, me }: Props) {
                     {shortWallet(e.wallet)}
                     {mine && <span className="dim"> · you</span>}
                   </td>
-                  <td className="num points">{e.points.toLocaleString("en-US")}</td>
+                  <td className="num points">{e.kills.toLocaleString("en-US")}</td>
+                  <td className="num dim">{e.deaths.toLocaleString("en-US")}</td>
                   <td className="num dim">{e.matches}</td>
                 </tr>
               );

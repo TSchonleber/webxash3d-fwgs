@@ -2,7 +2,15 @@ import type { MatchResult } from "../types";
 import type { Settlement } from "../settle";
 import { utcHourBucket } from "../period";
 
-export class MatchStore {
+/** Shared surface so the in-memory and SQLite stores are interchangeable. */
+export interface MatchStoreApi {
+  addMatch(r: MatchResult): void;
+  matchesForHour(hour: number): MatchResult[];
+  saveSettlement(hour: number, s: Settlement): void;
+  getSettlement(hour: number): Settlement | undefined;
+}
+
+export class MatchStore implements MatchStoreApi {
   private byHour = new Map<number, Map<string, MatchResult>>();
   private settlements = new Map<number, Settlement>();
 
