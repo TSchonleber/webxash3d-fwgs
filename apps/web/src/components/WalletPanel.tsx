@@ -43,10 +43,31 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function WalletPanelStub() {
   const { walletAddress } = useAuth();
+  // Demo build (DEV_BYPASS) can't mount Privy, so mirror the live panel's
+  // balance readout with sample figures — the real panel reads these live.
   return (
     <Shell>
-      <p className="wallet-addr mono">{walletAddress}</p>
-      <p className="lock-note">Wallet actions are available in the live app.</p>
+      <div className="wallet-bal">
+        <span className="wallet-bal-num mono">2.41</span>
+        <span className="wallet-bal-unit">SOL</span>
+      </div>
+      <div className="wallet-token mono">
+        <span className="wallet-token-amt">12,500</span>
+        <span className="wallet-token-sym">{TOKEN_SYMBOL}</span>
+      </div>
+
+      <label className="wallet-label">Your deposit address</label>
+      <div className="wallet-addr-row">
+        <span className="wallet-addr mono">{walletAddress}</span>
+        <button className="btn ghost wallet-copy" disabled>Copy</button>
+      </div>
+
+      <div className="wallet-actions">
+        <button className="btn ghost" disabled>Fund</button>
+        <button className="btn ghost" disabled>Export key</button>
+      </div>
+
+      <p className="lock-note">Demo wallet — live SOL and {TOKEN_SYMBOL} balances, deposits and withdrawals are active once you sign in.</p>
     </Shell>
   );
 }

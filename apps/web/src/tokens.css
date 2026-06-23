@@ -1,0 +1,168 @@
+/* ============================================================
+   ChainStrike — "The Scoreboard" design system
+   Canonical tokens + base + shared components.
+   One acid-lime accent on flat ink. No glow, no gradients.
+   The signature is the live scoreboard-ledger: rank-1 is a
+   solid lime bar (a highlighter swipe over a printout).
+
+   Consumed by:
+     - apps/web/src/theme.css   (@import "../../shared/tokens.css")
+     - apps/landing/index.html  (mirrored as apps/landing/tokens.css)
+   Keep the two copies identical — edit here first.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100,400;100,500;100,600;100,700;125,800;125,900&family=Spline+Sans+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ---- ink neutrals ---- */
+  --ink:        #0a0b0d;   /* page base */
+  --ink-raise:  #101216;   /* raised panel */
+  --ink-2:      #16181d;   /* secondary surface / hover */
+  --line:       #23262b;   /* hairline */
+  --line-2:     #2f333b;   /* stronger divider */
+
+  /* ---- text ---- */
+  --text:       #eceef1;
+  --text-dim:   #9aa0a8;
+  --text-faint: #5b616b;
+
+  /* ---- the one accent ---- */
+  --lime:       #c6ff3d;   /* money / win / live / the single signal */
+  --lime-press: #b2eb2c;   /* pressed/active fill */
+  --lime-ink:   #0a0b0d;   /* text on a lime fill */
+
+  /* ---- type ---- */
+  --font-display: 'Archivo', system-ui, sans-serif;
+  --font-body:    'Archivo', system-ui, sans-serif;
+  --font-mono:    'Spline Sans Mono', ui-monospace, 'SFMono-Regular', monospace;
+  /* expanded-black display axis */
+  --fvs-display:  'wght' 900, 'wdth' 125;
+  --fvs-heavy:    'wght' 800, 'wdth' 125;
+
+  /* ---- spacing scale (4px base) ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px; --s5: 24px;
+  --s6: 32px; --s7: 48px; --s8: 64px; --s9: 96px; --s10: 128px;
+
+  /* ---- geometry ---- */
+  --r: 2px;            /* sharp, scoreboard-like */
+  --maxw: 1200px;
+  --tap: 44px;         /* minimum touch target */
+
+  --dur: 0.16s;
+  --ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+
+/* ---------- reset ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+button { font: inherit; color: inherit; }
+
+::selection { background: var(--lime); color: var(--lime-ink); }
+
+:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+
+/* ---------- typography primitives ---------- */
+.display {
+  font-family: var(--font-display);
+  font-variation-settings: var(--fvs-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+}
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* eyebrow / micro label — the "terminal" voice */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ---------- layout helpers ---------- */
+.wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding-inline: var(--s5); }
+@media (min-width: 720px) { .wrap { padding-inline: var(--s7); } }
+
+/* ---------- live dot (a small square — terminal cursor, not a glowing orb) ---------- */
+.dot {
+  display: inline-block; width: 7px; height: 7px; flex: none;
+  background: var(--lime);
+  animation: blink 1.6s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0.2; } }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--tap);
+  padding: 12px 26px;
+  font-family: var(--font-display);
+  font-variation-settings: var(--fvs-heavy);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--lime);
+  color: var(--lime-ink);
+  border: 1px solid var(--lime);
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.btn:hover { background: var(--lime-press); border-color: var(--lime-press); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn.ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--line-2);
+}
+.btn.ghost:hover { background: transparent; border-color: var(--lime); color: var(--lime); }
+
+.btn.sm { min-height: 38px; padding: 9px 16px; font-size: 13px; }
+
+/* ---------- panel ---------- */
+.panel {
+  background: var(--ink-raise);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s4);
+  padding: var(--s4) var(--s5);
+  border-bottom: 1px solid var(--line);
+}
+.panel-title {
+  font-family: var(--font-display);
+  font-variation-settings: var(--fvs-heavy);
+  font-weight: 800; font-size: 13px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+
+/* The signature scoreboard-ledger lives in theme.css, applied to the real
+   boards (.lb table, .hud-board list): hairline rows, mono tabular figures,
+   and rank-1 rendered as a solid lime bar. */
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
