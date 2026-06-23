@@ -33,6 +33,17 @@ const blockConsoleKey = (e: KeyboardEvent) => {
 window.addEventListener('keydown', blockConsoleKey, true)
 window.addEventListener('keyup', blockConsoleKey, true)
 
+// While actively playing (pointer locked to the game canvas), stop the BROWSER from
+// acting on game keys — e.g. Ctrl/Cmd+W (crouch+forward) closing the tab, F5 reload,
+// Tab, Backspace, Ctrl+S/D, etc. We only preventDefault, so the key still reaches the
+// engine (no stopPropagation). Escape is left alone so players can always release the
+// pointer lock / open the menu. When not locked (lobby, chat, menus) the browser works
+// normally. Note: Ctrl/Cmd+W is browser-reserved and may still close — the beforeunload
+// guard below catches that with a confirm prompt.
+window.addEventListener('keydown', (e) => {
+    if (document.pointerLockElement && e.key !== 'Escape') e.preventDefault()
+}, { capture: true })
+
 // Voice chat is disabled, but the engine (and iOS) can still pop a "use your
 // microphone" prompt during init. Intercept audio-only getUserMedia and reject it
 // so the prompt never appears — gameplay needs no mic.
