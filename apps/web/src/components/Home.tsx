@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
 import { useLeaderboard } from "../lib/useLeaderboard";
-import { API_BASE } from "../lib/config";
+import { API_BASE, TOKEN_MINT, TOKEN_SYMBOL } from "../lib/config";
 import { shortWallet } from "../lib/format";
 
 /** Live prize-pool reading (on-chain treasury balance), polled. */
@@ -35,6 +35,12 @@ export function Home() {
   const pool = usePool();
   const live = useLeaderboard();
   const top = live.entries.slice(0, 8);
+  const [caCopied, setCaCopied] = useState(false);
+  const copyCA = () => {
+    navigator.clipboard?.writeText(TOKEN_MINT);
+    setCaCopied(true);
+    setTimeout(() => setCaCopied(false), 1500);
+  };
 
   return (
     <div className="home">
@@ -92,6 +98,16 @@ export function Home() {
           </ol>
         </aside>
       </section>
+
+      {/* CONTRACT ADDRESS — shown once the token mint is configured */}
+      {TOKEN_MINT && (
+        <section className="ca-strip">
+          <span className="ca-label">{TOKEN_SYMBOL} CONTRACT</span>
+          <code className="ca-addr mono">{TOKEN_MINT}</code>
+          <button className="ca-copy" onClick={copyCA}>{caCopied ? "Copied" : "Copy"}</button>
+          <a className="ca-link" href={`https://solscan.io/token/${TOKEN_MINT}`} target="_blank" rel="noreferrer">Solscan ↗</a>
+        </section>
+      )}
 
       {/* HOW IT WORKS — a typed sequence (drop -> frag -> paid) */}
       <section className="home-how">
