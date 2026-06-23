@@ -388,44 +388,22 @@ async function main() {
         })
     }
     
-    // Join queue: the match caps at 30 players. Poll /players; if it's full, show
-    // the queue and auto-join the moment a slot opens. Retry the connect a couple
-    // times in case it fires before the engine has left the main menu.
+    // Drop straight into the session; retry the connect a couple of times in case
+    // it fires before the engine has left the main menu. (No /players queue gate:
+    // the SFU peer/handler count over-counts zombie connections, so it would read
+    // falsely full and block joins. Re-add an accurate queue once the live HLDS
+    // player count is exposed — e.g. via the log sidecar — and we run multiple boxes.)
     const joinServer = () => x.Cmd_ExecuteString('connect 127.0.0.1:8080')
-    const queueEl = document.getElementById('queue')
-    const queueCount = document.getElementById('queue-count')
     const connectingEl = document.getElementById('connecting')
-    let joined = false
-    const doJoin = () => {
-        if (joined) return
-        joined = true
-        queueEl?.classList.remove('show')
-        if (connectingEl) { connectingEl.style.display = 'flex'; connectingEl.style.opacity = '1' }
-        joinServer()
-        setTimeout(joinServer, 2000)
-        setTimeout(joinServer, 5000)
-        if (spectateMode) setTimeout(() => x.Cmd_ExecuteString('spectate'), 6000)
-        // hide the load splash once we've dropped into the match
-        setTimeout(() => {
-            if (connectingEl) { connectingEl.style.opacity = '0'; setTimeout(() => { connectingEl.style.display = 'none' }, 600) }
-        }, 7000)
-    }
-    const checkQueue = async () => {
-        if (joined) return
-        try {
-            const res = await fetch(`${serverPath}/players`, { cache: 'no-store' })
-            const { count, max } = (await res.json()) as { count: number; max: number }
-            if (count < max) { doJoin(); return }
-            // full — show the queue and keep polling
-            if (connectingEl) connectingEl.style.display = 'none'
-            queueEl?.classList.add('show')
-            if (queueCount) queueCount.textContent = `${count} / ${max} in match`
-        } catch {
-            doJoin(); return // if the count check fails, just try to connect
-        }
-        setTimeout(checkQueue, 3000)
-    }
-    checkQueue()
+    if (connectingEl) { connectingEl.style.display = 'flex'; connectingEl.style.opacity = '1' }
+    joinServer()
+    setTimeout(joinServer, 2000)
+    setTimeout(joinServer, 5000)
+    if (spectateMode) setTimeout(() => x.Cmd_ExecuteString('spectate'), 6000)
+    // hide the load splash once we've dropped into the match
+    setTimeout(() => {
+        if (connectingEl) { connectingEl.style.opacity = '0'; setTimeout(() => { connectingEl.style.display = 'none' }, 600) }
+    }, 7000)
 
     // Guard accidental tab-close, but let an intentional "Quit to Lobby"
     // (which sets leavingToLobby) navigate away without a prompt.
