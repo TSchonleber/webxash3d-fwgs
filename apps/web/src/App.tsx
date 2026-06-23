@@ -5,6 +5,7 @@ import { PrizePool } from "./components/PrizePool";
 import { Leaderboard } from "./components/Leaderboard";
 import { GamePanel } from "./components/GamePanel";
 import { ClaimPanel } from "./components/ClaimPanel";
+import { WalletPanel } from "./components/WalletPanel";
 import { HowItWorks } from "./components/HowItWorks";
 import { useAuth } from "./lib/auth";
 import { useLeaderboard } from "./lib/useLeaderboard";
@@ -35,7 +36,6 @@ function TopBar() {
   );
 }
 
-/** Derive a display pool from total points (1 point ≈ 250 $TOKEN), in lamports. */
 function Dashboard() {
   const { walletAddress } = useAuth();
   const live = useLeaderboard();
@@ -55,7 +55,10 @@ function Dashboard() {
         />
         <GamePanel />
       </div>
-      <ClaimPanel />
+      <div className="grid">
+        <WalletPanel />
+        <ClaimPanel />
+      </div>
       <HowItWorks />
     </>
   );

@@ -166,6 +166,21 @@ body::after {
 .badge .tick { font-weight: 700; }
 .lock-note { color: var(--text-dim); font-size: 12px; margin: 10px 0 0; max-width: 38ch; }
 
+/* Wallet panel */
+.wallet-bal { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 16px; }
+.wallet-bal-num { font-family: var(--font-mono); font-size: 30px; font-weight: 600; color: var(--lime); }
+.wallet-bal-unit { color: var(--text-dim); font-size: 14px; letter-spacing: 0.08em; }
+.wallet-label { display: block; font-family: var(--font-display); font-weight: 800; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin: 14px 0 7px; }
+.wallet-addr-row { display: flex; gap: 8px; align-items: center; }
+.wallet-addr { font-family: var(--font-mono); font-size: 12px; color: var(--text); word-break: break-all; background: var(--ink-800); border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 11px; flex: 1; }
+.wallet-copy { flex: 0 0 auto; padding: 9px 14px; }
+.wallet-actions { display: flex; gap: 10px; margin-top: 14px; }
+.wallet-actions .btn { flex: 1; }
+.wallet-send { display: grid; grid-template-columns: 1fr 88px auto; gap: 8px; }
+.wallet-input { font-family: var(--font-mono); font-size: 13px; background: var(--ink-800); border: 1px solid var(--line); border-radius: var(--radius); padding: 11px; color: var(--text); outline: none; }
+.wallet-input:focus { border-color: var(--lime); }
+@media (max-width: 520px) { .wallet-send { grid-template-columns: 1fr; } }
+
 /* How it works */
 .how { margin-top: 28px; }
 .how > h2 { font-family: var(--font-display); font-weight: 800; font-size: 22px; margin: 0 0 16px; }
