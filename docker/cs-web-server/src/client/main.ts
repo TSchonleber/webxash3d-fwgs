@@ -498,7 +498,7 @@ if (spectateMode) {
 //      rsync src/client/dist -> box, restart cs-web-server-dm-1 (dist is bind-mounted).
 // Until step 1 exists, leave LOCKED = true so no one plays for free.
 // ============================================================================
-const LOCKED = true
+const LOCKED = false   // OPEN to the public. No token gate for now; flip back to true to re-lock pre-gate.
 const BYPASS_KEY = 'cs-unlock-7f3aq92k'
 if (new URLSearchParams(window.location.search).get('key') === BYPASS_KEY) {
     localStorage.setItem('cs_unlock', BYPASS_KEY)
