@@ -2,5 +2,5 @@
 export const PERIOD_MS = 900_000;
 
 export function utcHourBucket(unixMs: number): number {
-  return Math.floor(unixMs / PERIOD_MS) // period index (10-minute payout periods)
+  return Math.floor(unixMs / PERIOD_MS) // period index (15-minute payout periods)
 }
