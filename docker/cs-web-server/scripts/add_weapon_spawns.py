@@ -1,61 +1,72 @@
 import struct, re, random
-SRC = "/tmp/de_train.bsp"      # clean original
-OUT = "/tmp/de_train_dm.bsp"
-random.seed(42)
+SRC="/tmp/de_train.bsp"; OUT="/tmp/de_train_dm.bsp"; random.seed(11)
+d=bytearray(open(SRC,"rb").read())
+assert struct.unpack_from("<i",d,0)[0]==30
+dirs=[list(struct.unpack_from("<ii",d,4+i*8)) for i in range(15)]
+def lump(i): off,ln=dirs[i]; return bytes(d[off:off+ln])
+lumps=[lump(i) for i in range(15)]
 
-data = bytearray(open(SRC, "rb").read())
-assert struct.unpack_from("<i", data, 0)[0] == 30
-NLUMP = 15
-dirs = [list(struct.unpack_from("<ii", data, 4+i*8)) for i in range(NLUMP)]
-lumps = [bytes(data[off:off+ln]) for off,ln in dirs]
-ent_text = lumps[0].split(b"\x00")[0].decode("latin-1")
+planes=[struct.unpack_from("<ffffi",lumps[1],j*20) for j in range(len(lumps[1])//20)]
+verts =[struct.unpack_from("<fff",lumps[3],j*12) for j in range(len(lumps[3])//12)]
+edges =[struct.unpack_from("<HH",lumps[12],j*4) for j in range(len(lumps[12])//4)]
+sedges=[struct.unpack_from("<i",lumps[13],j*4)[0] for j in range(len(lumps[13])//4)]
+nface=len(lumps[7])//20
 
-# collect valid floor origins from existing spawns
-spawns = []
-for m in re.finditer(r'\{[^{}]*\}', ent_text):
-    b = m.group(0)
-    cn = re.search(r'"classname"\s*"([^"]+)"', b)
-    og = re.search(r'"origin"\s*"(-?\d+)\s+(-?\d+)\s+(-?\d+)"', b)
-    if cn and og and cn.group(1) in ("info_player_start","info_player_deathmatch","info_vip_start"):
-        spawns.append(tuple(int(x) for x in og.groups()))
-spawns = list(dict.fromkeys(spawns))
-print("existing spawns:", len(spawns))
+# spawn Z reference
+ents=lumps[0].split(b"\x00")[0].decode("latin-1")
+spawn_zs=[int(m.group(3)) for m in re.finditer(r'"origin"\s*"(-?\d+)\s+(-?\d+)\s+(-?\d+)"',ents) if True]
+# (rough) use the bulk of origins as ground reference
+spawn_zs=sorted(spawn_zs); zref=spawn_zs[len(spawn_zs)//2] if spawn_zs else -270
 
-new = []
-# 1) MORE spawn points: jittered copies of each existing spawn (engine skips any
-#    that land blocked), spread players out for 30-slot FFA.
-nsp = 0
-for (x,y,z) in spawns:
-    for _ in range(3):
-        jx = x + random.randint(-112, 112)
-        jy = y + random.randint(-112, 112)
-        new.append('{\n"origin" "%d %d %d"\n"angles" "0 %d 0"\n"classname" "info_player_deathmatch"\n}'
-                    % (jx, jy, z+1, random.randint(0,359)))
-        nsp += 1
+floors=[]
+for f in range(nface):
+    planenum,side,firstedge,numedges,texinfo,s0,s1,s2,s3,lightofs=struct.unpack_from("<HhihHBBBBi",lumps[7],f*20)
+    nx,ny,nz,dist,ptype=planes[planenum]
+    if side: nz=-nz
+    if nz<0.7: continue  # not a floor
+    vs=[]
+    for e in range(numedges):
+        se=sedges[firstedge+e]
+        v= edges[se][0] if se>=0 else edges[-se][1]
+        vs.append(verts[v])
+    if len(vs)<3: continue
+    cx=sum(v[0] for v in vs)/len(vs); cy=sum(v[1] for v in vs)/len(vs); cz=sum(v[2] for v in vs)/len(vs)
+    # rough area filter: bounding box of the face
+    xs=[v[0] for v in vs]; ys=[v[1] for v in vs]
+    area=(max(xs)-min(xs))*(max(ys)-min(ys))
+    if area<2600: continue  # skip tiny faces
+    if cz < zref-80 or cz > zref+520: continue  # ground + accessible platforms
+    floors.append((cx,cy,cz,area))
+print(f"floor faces (filtered): {len(floors)}")
 
-# 2) Scattered weapons: lerp between random pairs of spawns -> points spread
-#    AROUND the map, distinct from the spawn locations themselves.
-WEAPONS = [4,6,10,8,2,11,7,5,13,0,15,16,12,3]  # ak,m4,awp,scout,p90,m3,aug,sg552,m249,mp5,he,kevlar,xm1014,mac10
-nw = 0
-for i in range(34):
-    a, b = random.sample(spawns, 2)
-    t = random.uniform(0.3, 0.7)
-    wx = int(a[0] + (b[0]-a[0])*t)
-    wy = int(a[1] + (b[1]-a[1])*t)
-    wz = int(a[2] + (b[2]-a[2])*t) + 18
-    item = WEAPONS[i % len(WEAPONS)]
-    new.append('{\n"origin" "%d %d %d"\n"count" "50"\n"item" "%d"\n"classname" "armoury_entity"\n}' % (wx,wy,wz,item))
-    nw += 1
+# spread: bucket by 384-unit XY grid, keep largest face per cell
+cells={}
+for (x,y,z,a) in floors:
+    key=(int(x//384),int(y//384))
+    if key not in cells or a>cells[key][3]: cells[key]=(x,y,z,a)
+pts=[(int(x),int(y),int(z)) for (x,y,z,a) in cells.values()]
+random.shuffle(pts)
+print(f"spread cells: {len(pts)}")
 
-print(f"added {nsp} spawn points, {nw} scattered weapons")
-new_text = ent_text.rstrip() + "\n" + "\n".join(new) + "\n"
-lumps[0] = new_text.encode("latin-1") + b"\x00"
+new=[]
+# spawns at MOST cells (whole-map spread), 2 per cell
+ns=0
+for (x,y,z) in pts:
+    for _ in range(2):
+        new.append('{\n"origin" "%d %d %d"\n"angles" "0 %d 0"\n"classname" "info_player_deathmatch"\n}'%(x+random.randint(-48,48),y+random.randint(-48,48),z+24,random.randint(0,359))); ns+=1
+# weapons spread across distinct cells
+WEAP=[4,6,10,8,2,11,7,5,13,0,15,16,12,3]
+nw=0
+wcells=pts[:] ; random.shuffle(wcells)
+for i,(x,y,z) in enumerate(wcells[:40]):
+    new.append('{\n"origin" "%d %d %d"\n"count" "50"\n"item" "%d"\n"classname" "armoury_entity"\n}'%(x,y,z+20,WEAP[i%len(WEAP)])); nw+=1
+print(f"added {ns} spawns, {nw} weapons across {len(pts)} map cells")
 
-out = bytearray(4 + NLUMP*8)
-struct.pack_into("<i", out, 0, 30)
-for i in range(NLUMP):
-    off = len(out); out += lumps[i]
-    while len(out) % 4: out += b"\x00"
-    struct.pack_into("<ii", out, 4+i*8, off, len(lumps[i]))
-open(OUT,"wb").write(out)
-print(f"wrote {OUT}: {len(out)} bytes")
+new_text=ents.rstrip()+"\n"+"\n".join(new)+"\n"
+lumps[0]=new_text.encode("latin-1")+b"\x00"
+out=bytearray(4+15*8); struct.pack_into("<i",out,0,30)
+for i in range(15):
+    off=len(out); out+=lumps[i]
+    while len(out)%4: out+=b"\x00"
+    struct.pack_into("<ii",out,4+i*8,off,len(lumps[i]))
+open(OUT,"wb").write(out); print(f"wrote {OUT}: {len(out)} bytes")
