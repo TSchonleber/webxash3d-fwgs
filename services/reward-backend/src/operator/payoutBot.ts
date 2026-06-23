@@ -32,7 +32,7 @@ const MIN_KILLS = Number(process.env.MIN_KILLS ?? 1);
 // board — otherwise skip and let the pool accumulate for a busier round.
 const MIN_PLAYERS = Number(process.env.MIN_PLAYERS ?? 7);
 const FEE_BUFFER_SOL = Number(process.env.FEE_BUFFER_SOL ?? 0.01);
-const PERIOD_MS = 900_000;   // 15-min payout periods
+const PERIOD_MS = 1_800_000;   // 30-min payout periods
 
 interface Entry { wallet: string; kills?: number; rank?: number; }
 type PaidLog = Record<string, { winners: unknown; ts: number }>;

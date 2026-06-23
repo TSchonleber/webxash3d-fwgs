@@ -32,7 +32,7 @@ export const SWAP_SLIPPAGE_BPS = Number(import.meta.env.VITE_SWAP_SLIPPAGE_BPS ?
 export const DEMO_WALLET = "Dmo7xAshArEna1111111111111111111111111111111";
 
 // Payout period — MUST match services/reward-backend/src/period.ts (15 min).
-export const PERIOD_MS = 900_000;
+export const PERIOD_MS = 1_800_000;
 
 /** Period-index id used as the period id, matching the backend. */
 export function currentUtcHour(now: number = Date.now()): number {
