@@ -405,22 +405,27 @@ async function main() {
         })
     }
     
-    // Drop straight into the session; retry the connect a couple of times in case
-    // it fires before the engine has left the main menu. (No /players queue gate:
-    // the SFU peer/handler count over-counts zombie connections, so it would read
-    // falsely full and block joins. Re-add an accurate queue once the live HLDS
-    // player count is exposed — e.g. via the log sidecar — and we run multiple boxes.)
+    // Join the match. A fixed 0/2/5s retry left slow / TURN-relayed clients stuck at
+    // the engine menu (the connect fired before the tunnel was ready, then gave up).
+    // Instead retry every 3s UNTIL server game-data flows (packetsIn climbs = the
+    // connect took), then stop so we never reconnect-loop a connected player. Keep the
+    // "connecting" splash up until actually in, and give up after ~45s.
     const joinServer = () => x.Cmd_ExecuteString('connect 127.0.0.1:8080')
     const connectingEl = document.getElementById('connecting')
     if (connectingEl) { connectingEl.style.display = 'flex'; connectingEl.style.opacity = '1' }
-    joinServer()
-    setTimeout(joinServer, 2000)
-    setTimeout(joinServer, 5000)
-    if (spectateMode) setTimeout(() => x.Cmd_ExecuteString('spectate'), 6000)
-    // hide the load splash once we've dropped into the match
-    setTimeout(() => {
+    const hideConnecting = () => {
         if (connectingEl) { connectingEl.style.opacity = '0'; setTimeout(() => { connectingEl.style.display = 'none' }, 600) }
-    }, 7000)
+    }
+    joinServer()
+    if (spectateMode) setTimeout(() => x.Cmd_ExecuteString('spectate'), 6000)
+    let joinAttempts = 0
+    const joinLoop = setInterval(() => {
+        const pkts = (x as unknown as { packetsIn?: number }).packetsIn || 0
+        if (pkts > 5) { clearInterval(joinLoop); hideConnecting(); return }   // connected (data flowing)
+        joinAttempts++
+        if (joinAttempts >= 15) { clearInterval(joinLoop); hideConnecting(); return } // ~45s give up
+        joinServer()
+    }, 3000)
 
     // Guard accidental tab-close, but let an intentional "Quit to Lobby"
     // (which sets leavingToLobby) navigate away without a prompt.

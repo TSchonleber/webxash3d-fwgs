@@ -12,6 +12,7 @@ export class Xash3DWebRTC extends Xash3D {
     private stream?: MediaStream
     private connected = false                                // true once both data channels open (in-game)
     private reconnectTimer?: ReturnType<typeof setTimeout>   // debounce reconnects to prevent a storm
+    packetsIn = 0                                            // server->client game packets; >0 means the match connect took
 
     constructor(opts?: Xash3DOptions) {
         super(opts);
@@ -84,6 +85,7 @@ export class Xash3DWebRTC extends Xash3D {
         peer.ondatachannel = (e) => {
             if (e.channel.label === 'write') {
                 e.channel.onmessage = (ee) => {
+                    this.packetsIn++   // server is sending game data -> the match connect succeeded
                     const packet: Packet = {
                         ip: [127, 0, 0, 1],
                         port: 8080,
