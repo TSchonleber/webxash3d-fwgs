@@ -459,10 +459,23 @@ if (spectateMode) {
     usernamePromiseResolve('spectator')
 }
 
-// ---- pre-launch lock ----
-// Closed to the public until $TOKEN launches. The operator unlocks with ?key=...
-// (remembered per-device via localStorage). This is a soft client-side gate — at
-// coin launch, replace with the real per-wallet 1000-token check enforced server-side.
+// ============================================================================
+// PRE-LAUNCH LOCK  (ticker: $CS)
+// Game is closed to the public until the $CS token launches. Operator/demo bypass:
+//   https://game.chainstrike.fun/?key=cs-unlock-7f3aq92k   (remembered per-device)
+//
+// HOW TO OPEN THE GAME AT LAUNCH (once the CA + token gating are implemented):
+//   1. Stand up the real 1000-$CS gate enforced SERVER-SIDE (don't rely on this
+//      client flag — direct game URLs bypass client checks):
+//        - dashboard (apps/web) verifies the player's wallet holds >=1000 $CS
+//          (VITE_TOKEN_MINT = the $CS CA, VITE_MIN_HOLD=1000, VITE_GATE_BYPASS=0),
+//          then mints a short-lived signed pass and opens the game with it;
+//        - cs-web-server validates that pass before allowing the connect.
+//   2. THEN set LOCKED = false here (optionally delete the #locked screen +
+//      BYPASS_KEY), rebuild the client (vite build, root=src/client) and redeploy:
+//      rsync src/client/dist -> box, restart cs-web-server-dm-1 (dist is bind-mounted).
+// Until step 1 exists, leave LOCKED = true so no one plays for free.
+// ============================================================================
 const LOCKED = true
 const BYPASS_KEY = 'cs-unlock-7f3aq92k'
 if (new URLSearchParams(window.location.search).get('key') === BYPASS_KEY) {
