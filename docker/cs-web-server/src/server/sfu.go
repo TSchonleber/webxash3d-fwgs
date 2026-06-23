@@ -64,6 +64,12 @@ func (n *SFUNet) SendToBatch(fd int, packets []goxash3d_fwgs.Packet, flags int) 
 }
 
 var pool = goxash3d_fwgs.NewBytesPool(256)
+
+// Connection guardrails: a concurrent ceiling + a new-connection token bucket so a
+// reconnect storm or abuse sheds excess (returns "try again later") instead of
+// saturating the game and freezing everyone already in. Raise once we scale out.
+const maxConns = 80
+var connTokens = make(chan struct{}, 30) // burst 30, refilled ~20/sec in runSFU
 var connections = make([]io.Writer, 256)
 
 var (
@@ -302,6 +308,24 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) { // nolint
 	if err != nil {
 		log.Errorf("Failed to upgrade HTTP to Websocket: ", err)
 
+		return
+	}
+
+	// Shed load when over capacity or hit by a burst (storm/abuse): close with a
+	// transient code so well-behaved clients back off and retry, instead of letting
+	// the pile-up freeze the game for everyone already connected.
+	if atomic.LoadInt64(&activePlayers) >= maxConns {
+		_ = unsafeConn.WriteControl(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseTryAgainLater, "server busy"), time.Now().Add(time.Second))
+		_ = unsafeConn.Close()
+		return
+	}
+	select {
+	case <-connTokens:
+	default:
+		_ = unsafeConn.WriteControl(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseTryAgainLater, "rate limited"), time.Now().Add(time.Second))
+		_ = unsafeConn.Close()
 		return
 	}
 
@@ -730,6 +754,21 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func runSFU() {
+	// Prime + refill the connection rate-limit token bucket (~20/sec, burst 30).
+	for i := 0; i < cap(connTokens); i++ {
+		connTokens <- struct{}{}
+	}
+	go func() {
+		t := time.NewTicker(50 * time.Millisecond)
+		defer t.Stop()
+		for range t.C {
+			select {
+			case connTokens <- struct{}{}:
+			default:
+			}
+		}
+	}()
+
 	settingEngine := webrtc.SettingEngine{}
 	settingEngine.DetachDataChannels()
 
