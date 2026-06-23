@@ -15,7 +15,7 @@ function usePool() {
         .then((d) => on && setSol(typeof d.sol === "number" ? d.sol : 0))
         .catch(() => {});
     tick();
-    const id = setInterval(tick, 20000);
+    const id = setInterval(tick, 8000);
     return () => {
       on = false;
       clearInterval(id);

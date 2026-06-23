@@ -55,3 +55,13 @@ export function msToNextPayout(now: number = Date.now()): number {
   const thisPayout = lastBoundary + PAYOUT_OFFSET_MS;
   return (now < thisPayout ? thisPayout : lastBoundary + PERIOD_MS + PAYOUT_OFFSET_MS) - now;
 }
+
+/**
+ * Period the leaderboard should DISPLAY. It lags the live period by the payout
+ * offset so a round keeps showing its final standings until its payout has gone
+ * out, then resets for the new round — instead of blanking at the boundary
+ * mid-countdown.
+ */
+export function displayHour(now: number = Date.now()): number {
+  return Math.floor((now - PAYOUT_OFFSET_MS) / PERIOD_MS);
+}

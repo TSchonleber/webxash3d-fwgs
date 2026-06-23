@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useApp } from "./context";
-import { currentUtcHour } from "./config";
+import { displayHour } from "./config";
 import type { RankedEntry } from "./api";
 
 interface State {
@@ -14,13 +14,13 @@ export function useLeaderboard(intervalMs = 10_000): State {
   const { api } = useApp();
   const [entries, setEntries] = useState<RankedEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const hour = currentUtcHour();
+  const hour = displayHour();
 
   useEffect(() => {
     let alive = true;
     const tick = async () => {
       try {
-        const board = await api.leaderboard(currentUtcHour());
+        const board = await api.leaderboard(displayHour());
         if (alive) setEntries(board);
       } catch {
         /* leave last-known board on transient error */

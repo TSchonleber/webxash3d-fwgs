@@ -24,7 +24,7 @@ export function PrizePool({ contenders }: Props) {
     let alive = true;
     const load = () => api.pool().then((p) => alive && setPool(p)).catch(() => {});
     load();
-    const id = setInterval(load, 15000);
+    const id = setInterval(load, 8000);
     return () => { alive = false; clearInterval(id); };
   }, []);
 

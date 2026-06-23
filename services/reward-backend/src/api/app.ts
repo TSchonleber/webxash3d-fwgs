@@ -27,23 +27,30 @@ export function createApp(deps: AppDeps) {
 
   app.get("/health", (c) => c.json({ ok: true }));
 
-  // Live prize pool = the on-chain vault's SOL balance.
+  // Live prize pool = the on-chain vault's SOL balance. Cached 5s so clients can
+  // poll fast (to reflect a payout promptly) without hammering the RPC, and so a
+  // transient RPC error serves the last good value instead of flapping to 0.
+  let poolCache: { ts: number; data: { vaultAddress: string | null; lamports: number; sol: number; denom: string } | null } = { ts: 0, data: null };
   app.get("/pool", async (c) => {
     if (!deps.poolReader) return c.json({ vaultAddress: null, lamports: 0, sol: 0, denom: "SOL" });
+    if (poolCache.data && Date.now() - poolCache.ts < 5_000) return c.json(poolCache.data);
     try {
       const { vaultAddress, lamports } = await deps.poolReader();
-      return c.json({ vaultAddress, lamports, sol: lamports / 1e9, denom: "SOL" });
+      const data = { vaultAddress, lamports, sol: lamports / 1e9, denom: "SOL" };
+      poolCache = { ts: Date.now(), data };
+      return c.json(data);
     } catch {
+      if (poolCache.data) return c.json(poolCache.data);
       return c.json({ vaultAddress: null, lamports: 0, sol: 0, denom: "SOL" });
     }
   });
 
   // Recent on-chain payouts from the treasury, for a public transparency page.
-  // Cached 60s so /payouts doesn't hammer the RPC on every visitor.
+  // Cached 25s so the payout list reflects promptly without hammering the RPC.
   let payoutsCache: { ts: number; data: unknown } = { ts: 0, data: [] };
   app.get("/payouts", async (c) => {
     if (!deps.payoutsReader) return c.json([]);
-    if (Date.now() - payoutsCache.ts < 60_000) return c.json(payoutsCache.data);
+    if (Date.now() - payoutsCache.ts < 25_000) return c.json(payoutsCache.data);
     try {
       const data = await deps.payoutsReader();
       payoutsCache = { ts: Date.now(), data };
