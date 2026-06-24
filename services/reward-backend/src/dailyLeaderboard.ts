@@ -1,6 +1,7 @@
 import type { MatchResult } from "./types";
+import { WINDOW_MS } from "./period";
 
-/** One row of the daily Top-N board. */
+/** One row of the reward-window Top-N board. */
 export interface DailyEntry {
   wallet: string;
   kills: number;
@@ -28,29 +29,48 @@ interface Agg {
   bestStreak: number;
 }
 
-/**
- * Weighted skill score (tunable) — the daily ranking metric. Rewards fragging,
- * winning lobbies, kill streaks, and precision (headshots + shot accuracy);
- * penalizes dying. The headshot and accuracy terms stay at 0 until the oracle
- * starts capturing hit data (phase 2), at which point they light up automatically
- * with no further changes here.
- */
+// --- Hardcore skill rating (tunable) -----------------------------------------
+// Efficiency-weighted: rewards K/D, lobby win-rate and precision over raw volume,
+// so a sharp short session can outrank an all-day grind. Caps blunt the main
+// exploits (feeder/aimbot K/D, volume grinding); an activity gate (in rankDaily)
+// removes flukes. The HS% and accuracy terms read 0 until phase-2 hit logging,
+// then light up automatically. Streak is intentionally NOT scored — it's the most
+// feedable stat — but is kept as a display-only column.
+export const RATING = {
+  kdCap: 4, //     K/D contribution maxes here — caps feeder/aimbot ratios
+  killCap: 100, // volume credit plateaus here — grinding past it stops helping
+  wKd: 0.3, wWin: 0.35, wHs: 0.1, wAcc: 0.1, wVol: 0.15, // weights, sum = 1
+  minMatches: 2, minKills: 20, // activity gate to qualify for the board
+};
+
+/** Efficiency-weighted skill rating in [0,100] — the daily ranking metric. */
 export function skillScore(
-  a: Pick<Agg, "kills" | "deaths" | "wins" | "bestStreak" | "headshots" | "shotsFired" | "shotsHit">,
+  a: Pick<Agg, "kills" | "deaths" | "wins" | "matches" | "headshots" | "shotsFired" | "shotsHit">,
 ): number {
-  const accPct = a.shotsFired > 0 ? (100 * a.shotsHit) / a.shotsFired : 0;
-  return Math.max(
-    0,
-    a.kills + 2 * a.wins + 0.5 * a.bestStreak + 0.5 * a.headshots + 0.1 * accPct - 0.5 * a.deaths,
-  );
+  const kd = a.deaths > 0 ? a.kills / a.deaths : a.kills;
+  const kdNorm = Math.min(kd, RATING.kdCap) / RATING.kdCap;
+  const winRate = a.matches > 0 ? a.wins / a.matches : 0;
+  const hsRate = a.kills > 0 ? a.headshots / a.kills : 0;
+  const acc = a.shotsFired > 0 ? a.shotsHit / a.shotsFired : 0;
+  const volNorm = Math.min(a.kills, RATING.killCap) / RATING.killCap;
+  const rating =
+    RATING.wKd * kdNorm + RATING.wWin * winRate + RATING.wHs * hsRate +
+    RATING.wAcc * acc + RATING.wVol * volNorm;
+  return Math.max(0, Math.min(100, 100 * rating));
 }
 
 /**
- * Ranks the daily Top-N by weighted skill score. A "win" = finishing the match as
- * the top-fragger (most kills, >0). Ties break by kills, then fewer deaths, then
- * wallet for a deterministic order. Pure function over the day's matches.
+ * Ranks the daily Top-N by efficiency skill rating. A "win" = finishing a match
+ * as the top-fragger (most kills, >0). Players below the activity gate
+ * (minMatches/minKills) are excluded so flukes and low-volume gaming can't rank.
+ * Ties break by kills, then fewer deaths, then wallet. Pure over the day's matches.
  */
-export function rankDaily(matches: MatchResult[], top = 10): DailyEntry[] {
+export function rankDaily(
+  matches: MatchResult[],
+  top = 10,
+  minMatches = RATING.minMatches,
+  minKills = RATING.minKills,
+): DailyEntry[] {
   const agg = new Map<string, Agg>();
   for (const m of matches) {
     const players = m.players ?? [];
@@ -86,7 +106,7 @@ export function rankDaily(matches: MatchResult[], top = 10): DailyEntry[] {
     accuracy: a.shotsFired ? Math.round((100 * a.shotsHit) / a.shotsFired) : 0,
     winPct: a.matches ? Math.round((100 * a.wins) / a.matches) : 0,
     score: Number(skillScore(a).toFixed(1)),
-  }));
+  })).filter((r) => r.matches >= minMatches && r.kills >= minKills);
   rows.sort(
     (x, y) =>
       y.score - x.score ||
@@ -98,6 +118,6 @@ export function rankDaily(matches: MatchResult[], top = 10): DailyEntry[] {
 }
 
 /** UTC day index for a unix-ms timestamp (matches the /leaderboard/daily bucketing). */
-export function utcDay(unixMs: number): number {
-  return Math.floor(unixMs / 86_400_000);
+export function utcWindow(unixMs: number): number {
+  return Math.floor(unixMs / WINDOW_MS);
 }

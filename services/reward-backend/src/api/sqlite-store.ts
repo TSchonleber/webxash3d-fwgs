@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import type { MatchResult, Award } from "../types";
 import type { Settlement } from "../settle";
 import type { MatchStoreApi } from "./store";
-import { utcHourBucket } from "../period";
+import { utcHourBucket, WINDOW_MS } from "../period";
 
 // Loaded via createRequire (not a static import) so bundlers/vitest don't try to
 // pre-resolve node:sqlite, which is newer than their builtin module lists.
@@ -94,9 +94,9 @@ export class SqliteMatchStore implements MatchStoreApi {
     return rows.map((row) => JSON.parse(row.json) as MatchResult);
   }
 
-  matchesForDay(day: number): MatchResult[] {
-    const start = day * 86_400_000;
-    const end = start + 86_400_000;
+  matchesForWindow(day: number): MatchResult[] {
+    const start = day * WINDOW_MS;
+    const end = start + WINDOW_MS;
     const rows = this.db
       .prepare(`SELECT json FROM matches WHERE ended_at_ms >= ? AND ended_at_ms < ? ORDER BY ended_at_ms, match_id`)
       .all(start, end) as { json: string }[];

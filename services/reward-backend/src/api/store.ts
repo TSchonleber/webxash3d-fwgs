@@ -1,13 +1,13 @@
 import type { MatchResult } from "../types";
 import type { Settlement } from "../settle";
-import { utcHourBucket } from "../period";
+import { utcHourBucket, WINDOW_MS } from "../period";
 
 /** Shared surface so the in-memory and SQLite stores are interchangeable. */
 export interface MatchStoreApi {
   addMatch(r: MatchResult): void;
   matchesForHour(hour: number): MatchResult[];
-  /** All matches that ended on the given UTC day (day index = floor(unixMs/86_400_000)). */
-  matchesForDay(day: number): MatchResult[];
+  /** All matches that ended in the given reward window (index = floor(unixMs/WINDOW_MS)). */
+  matchesForWindow(win: number): MatchResult[];
   saveSettlement(hour: number, s: Settlement): void;
   getSettlement(hour: number): Settlement | undefined;
   /** Bind an in-game callsign to a payout wallet. */
@@ -35,9 +35,9 @@ export class MatchStore implements MatchStoreApi {
     return [...(this.byHour.get(hour)?.values() ?? [])];
   }
 
-  matchesForDay(day: number): MatchResult[] {
-    const start = day * 86_400_000;
-    const end = start + 86_400_000;
+  matchesForWindow(day: number): MatchResult[] {
+    const start = day * WINDOW_MS;
+    const end = start + WINDOW_MS;
     const out: MatchResult[] = [];
     for (const bucket of this.byHour.values())
       for (const m of bucket.values())

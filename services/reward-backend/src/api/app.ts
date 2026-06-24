@@ -4,7 +4,8 @@ import { verifyEnvelope, type SignedEnvelope } from "./verify";
 import { MatchStore, type MatchStoreApi } from "./store";
 import { rankHour } from "../leaderboard";
 import { rankDaily } from "../dailyLeaderboard";
-import { settleHour } from "../settle";
+import { settleHour, settleDay } from "../settle";
+import { displayWindow } from "../period";
 import { buildClaimArgs } from "../publisher";
 
 export interface AppDeps {
@@ -113,13 +114,15 @@ export function createApp(deps: AppDeps) {
     return c.json({ stored: true });
   });
 
-  // Daily Top-10 board ranked by weighted skill score (kills/wins/streaks − deaths).
-  // Registered BEFORE /leaderboard/:hour so "daily" isn't captured as an hour param.
-  // ?day=<index> (UTC day = floor(unixMs/86_400_000)); defaults to today.
+  // Top-10 board for the current 8-hour reward window, ranked by efficiency skill
+  // rating. Registered BEFORE /leaderboard/:hour so "daily" isn't read as an hour.
+  // ?day=<window index = floor(unixMs/WINDOW_MS)>; defaults to the live window.
   app.get("/leaderboard/daily", (c) => {
     const q = c.req.query("day");
-    const day = q ? Number(q) : Math.floor(Date.now() / 86_400_000);
-    return c.json(rankDaily(store.matchesForDay(day)));
+    // Lag by the payout offset so the board resets exactly when the payout fires —
+    // the closing window stays on screen until its SOL goes out.
+    const win = q ? Number(q) : displayWindow();
+    return c.json(rankDaily(store.matchesForWindow(win)));
   });
 
   app.get("/leaderboard/:hour", (c) => {
@@ -145,6 +148,39 @@ export function createApp(deps: AppDeps) {
     const wallet = c.req.param("wallet");
     const s = store.getSettlement(hour);
     if (!s) return c.json({ error: "hour not settled" }, 404);
+    try {
+      const args = buildClaimArgs(s, wallet);
+      return c.json({
+        periodId: args.periodId.toNumber(),
+        index: args.index.toNumber(),
+        amount: args.amount.toString(),
+        proof: args.proof.map((p) => Buffer.from(p).toString("hex")),
+      });
+    } catch {
+      return c.json({ error: "not a winner" }, 404);
+    }
+  });
+
+  // --- reward payout — the window's Top-10 by skill rating, settled every 8h,
+  // budget split SCORE-WEIGHTED. The leaderboard naturally resets for the new window.
+  app.post("/settle/day/:day", async (c) => {
+    const win = Number(c.req.param("day"));
+    const vaultLamports = deps.poolReader
+      ? BigInt(Math.floor((await deps.poolReader()).lamports))
+      : deps.vaultLamports;
+    const s = await settleDay(store.matchesForWindow(win), {
+      vaultLamports, budgetBps: deps.budgetBps,
+      minMatches: deps.minMatches, isEligible: deps.isEligible, periodId: win,
+    });
+    store.saveSettlement(win, s);
+    return c.json({ periodId: s.periodId, total: s.totalAmount.toString(), winners: s.awards.length });
+  });
+
+  app.get("/claim/day/:day/:wallet", (c) => {
+    const day = Number(c.req.param("day"));
+    const wallet = c.req.param("wallet");
+    const s = store.getSettlement(day);
+    if (!s) return c.json({ error: "day not settled" }, 404);
     try {
       const args = buildClaimArgs(s, wallet);
       return c.json({

@@ -12,15 +12,15 @@ export function Leaderboard({ entries, loading, me }: Props) {
     <div className="panel">
       <div className="panel-head">
         <h2>Daily <span className="accent">Leaderboard</span></h2>
-        <span className="hint">TODAY · TOP 10 · BY SKILL SCORE</span>
+        <span className="hint">THIS WINDOW · TOP 10 · BY SKILL SCORE</span>
       </div>
 
       {entries.length === 0 ? (
         <div className="empty">
           {loading ? (
-            <><span className="spin" />Pulling today's standings…</>
+            <><span className="spin" />Pulling this window's standings…</>
           ) : (
-            <>No frags logged today yet — be the first on the board.</>
+            <>No frags logged this window yet — be the first on the board.</>
           )}
         </div>
       ) : (

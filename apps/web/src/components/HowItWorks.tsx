@@ -7,12 +7,12 @@ const STEPS = [
   {
     n: "02",
     title: "Climb the board",
-    body: "Kills, wins, streaks and accuracy feed a weighted skill score. The daily Top 10 board resets at midnight UTC — each day is a fresh shot at the top.",
+    body: "Efficiency wins — K/D, win-rate and accuracy drive the skill score, not raw grinding. The Top 10 board resets every 8 hours, so each window is a fresh shot at the top.",
   },
   {
     n: "03",
     title: "Get paid",
-    body: "Each day the Top 10 are paid out on Solana — verifiably, straight to the wallet tied to your callsign.",
+    body: "Every 8 hours the Top 10 are paid out on Solana — verifiably, straight to the wallet tied to your callsign.",
   },
 ];
 
