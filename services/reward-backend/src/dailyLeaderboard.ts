@@ -40,7 +40,7 @@ export const RATING = {
   kdCap: 4, //     K/D contribution maxes here — caps feeder/aimbot ratios
   killCap: 100, // volume credit plateaus here — grinding past it stops helping
   wKd: 0.3, wWin: 0.35, wHs: 0.1, wAcc: 0.1, wVol: 0.15, // weights, sum = 1
-  minMatches: 2, minKills: 20, // activity gate to qualify for the board
+  minMatches: 1, minKills: 1, // tournament: count all players in the window (a 1h window = ~1 match/player, so the old minMatches:2 gate dropped everyone who stayed on one server)
 };
 
 /** Efficiency-weighted skill rating in [0,100] — the daily ranking metric. */
