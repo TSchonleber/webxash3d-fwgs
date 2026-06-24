@@ -31,12 +31,24 @@ export function createApp(deps: AppDeps) {
 
   // TURN credentials for WebRTC NAT traversal. Generates short-lived Cloudflare TURN
   // creds server-side (keeps the API token off the client) and caches them 6h since
-  // they're valid 24h. Returns {iceServers:[]} if unconfigured -> client uses direct.
+  // they're valid 24h. When Cloudflare isn't configured, falls back to the self-hosted
+  // coturn relay — WITHOUT a relay, restrictive-NAT players hang forever at
+  // "establishing secure match link" (the direct path can't punch their NAT).
+  // Override the fallback via env (TURN_URL / TURN_USERNAME / TURN_CREDENTIAL / STUN_URL)
+  // if coturn moves; defaults are the verified-good UDP-only coturn config.
+  const fallbackIceServers: unknown = [
+    { urls: process.env.STUN_URL || "stun:54.39.97.84:3478" },
+    {
+      urls: process.env.TURN_URL || "turn:54.39.97.84:3478?transport=udp",
+      username: process.env.TURN_USERNAME || "cs",
+      credential: process.env.TURN_CREDENTIAL || "cs-turn-7f3a",
+    },
+  ];
   let iceCache: { servers: unknown; exp: number } | null = null;
   app.get("/ice", async (c) => {
     const keyId = process.env.TURN_KEY_ID;
     const token = process.env.TURN_API_TOKEN;
-    if (!keyId || !token) return c.json({ iceServers: [] });
+    if (!keyId || !token) return c.json({ iceServers: fallbackIceServers });
     const now = Date.now();
     if (!iceCache || iceCache.exp < now) {
       try {
@@ -51,7 +63,7 @@ export function createApp(deps: AppDeps) {
         const d = (await r.json()) as { iceServers?: unknown };
         iceCache = { servers: d.iceServers ?? [], exp: now + 6 * 3600 * 1000 };
       } catch {
-        return c.json({ iceServers: [] });
+        return c.json({ iceServers: fallbackIceServers });
       }
     }
     return c.json({ iceServers: iceCache.servers });
