@@ -70,7 +70,7 @@ export function displayHour(now: number = Date.now()): number {
 // The skill leaderboard pays the Top 10 once per 8-hour window (3× per UTC day,
 // at 00:00 / 08:00 / 16:00 UTC). Window index must match the backend's
 // /leaderboard/daily bucketing (floor(unixMs / WINDOW_MS)).
-export const WINDOW_MS = 28_800_000; // 8 hours
+export const WINDOW_MS = 3_600_000; // 1 hour (tournament window)
 
 /** Current reward-window index. */
 export function currentWindow(now: number = Date.now()): number {

@@ -9,7 +9,7 @@ export function utcHourBucket(unixMs: number): number {
 // One reward window = 8 hours, so payouts fire 3× per UTC day (00:00 / 08:00 /
 // 16:00 UTC — 8h windows align to the UTC epoch). Change WINDOW_MS to retune the
 // whole cadence; everything below derives from it.
-export const WINDOW_MS = 28_800_000; // 8 hours
+export const WINDOW_MS = 3_600_000; // 1 hour (tournament window)
 
 // The payout fires this long after each window boundary (waits for the oracle's
 // final snapshot of the window's last matches). The board's display window lags
