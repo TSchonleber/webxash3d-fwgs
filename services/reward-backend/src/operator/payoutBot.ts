@@ -1,14 +1,17 @@
 // payoutBot — custodial payout for ChainStrike.
 //
-// Reads the kills leaderboard for a closed 30-min period and sends SOL from the
-// treasury hot wallet directly to the top fraggers. No on-chain program, no
-// claims — the operator funds a normal wallet and this bot disburses it.
+// Reads the 8-hour reward window's Top-10 skill board and sends SOL from the
+// treasury hot wallet directly to the winners, SCORE-WEIGHTED (each winner earns
+// in proportion to their skill rating). No on-chain program, no claims — the
+// operator funds a normal wallet and this bot disburses it.
 //
-// Idempotent: each period is recorded in PAID_LOG and never paid twice.
+// Fires once per 8h window (driven by payout-scheduler.sh at the window boundary
+// + offset, in lockstep with the website countdown). Idempotent: each window is
+// recorded in PAID_LOG and never paid twice.
 //
-// Run (one period — defaults to the just-closed one):
-//   TREASURY_KEY=~/chainstrike-treasury.json RPC_URL=... PER_ROUND_SOL=0.1 \
-//   npx tsx src/operator/payoutBot.ts [periodHour]
+// Run (one window — defaults to the just-closed one):
+//   TREASURY_KEY=~/chainstrike-treasury.json RPC_URL=... \
+//   npx tsx src/operator/payoutBot.ts [windowIndex]
 import {
   Connection,
   Keypair,
@@ -24,17 +27,17 @@ const RPC = process.env.RPC_URL ?? "https://api.devnet.solana.com";
 const API = process.env.API_BASE ?? "http://localhost:8787";
 const TREASURY_KEY = process.env.TREASURY_KEY ?? `${process.env.HOME}/chainstrike-treasury.json`;
 const PAID_LOG = process.env.PAID_LOG ?? `${process.env.HOME}/chainstrike-payouts.json`;
-const PER_ROUND_SOL = Number(process.env.PER_ROUND_SOL ?? 0.1); // total pot disbursed per round
-const TOP_N = Number(process.env.TOP_N ?? 7);
-const WEIGHTS = (process.env.WEIGHTS ?? "30,22,16,12,9,7,4").split(",").map(Number);
-const MIN_KILLS = Number(process.env.MIN_KILLS ?? 1);
-// Only run the (full-pool) payout when at least this many players are on the
-// board — otherwise skip and let the pool accumulate for a busier round.
-const MIN_PLAYERS = Number(process.env.MIN_PLAYERS ?? 7);
+// Pot per window: 0 = the WHOLE treasury (minus fee buffer); >0 caps it to that many SOL.
+const PER_WINDOW_SOL = Number(process.env.PER_WINDOW_SOL ?? process.env.PER_ROUND_SOL ?? 0);
+const TOP_N = Number(process.env.TOP_N ?? 10);
+// Only pay when at least this many qualified winners are on the board — otherwise
+// skip and let the pot roll to a busier window.
+const MIN_PLAYERS = Number(process.env.MIN_PLAYERS ?? 3);
 const FEE_BUFFER_SOL = Number(process.env.FEE_BUFFER_SOL ?? 0.01);
-const PERIOD_MS = 1_800_000;   // 30-min payout periods
+const DRY_RUN = process.env.DRY_RUN === "1"; // log the split without sending SOL
+const WINDOW_MS = 28_800_000; // 8-hour reward window — MUST match period.ts
 
-interface Entry { wallet: string; kills?: number; rank?: number; }
+interface Entry { wallet: string; score?: number; kills?: number; }
 type PaidLog = Record<string, { winners: unknown; ts: number }>;
 
 function loadTreasury(): Keypair {
@@ -49,79 +52,74 @@ function savePaid(p: PaidLog): void {
 }
 function isWallet(s: string): boolean {
   try {
-    // base58 32-byte pubkey; name-fallback identities ("R4vager") fail here and
-    // are skipped — they have no wallet to pay until name->wallet is registered.
-    const pk = new PublicKey(s);
+    const pk = new PublicKey(s); // name-fallback identities fail here and are skipped
     return pk.toBytes().length === 32 && s.length >= 32 && s.length <= 44;
   } catch {
     return false;
   }
 }
 
-async function payPeriod(hour: number): Promise<void> {
+async function payWindow(win: number): Promise<void> {
+  const key = `w${win}`;
   const paid = loadPaid();
-  if (paid[hour]) {
-    console.log(`period ${hour}: already paid, skipping`);
+  if (paid[key]) {
+    console.log(`window ${win}: already paid, skipping`);
     return;
   }
 
-  const res = await fetch(`${API}/leaderboard/${hour}`);
+  // The 8h window's gated, efficiency-ranked Top-10 (DailyEntry carries `score`).
+  const res = await fetch(`${API}/leaderboard/daily?day=${win}`);
   if (!res.ok) throw new Error(`leaderboard fetch failed: ${res.status}`);
-  const entries = (await res.json()) as Entry[];
+  const board = (await res.json()) as Entry[];
 
-  // Gate: the full-pool payout only fires with real competition. Fewer than
-  // MIN_PLAYERS on the board -> skip this round, leaving the pool to grow.
-  if (entries.length < MIN_PLAYERS) {
-    console.log(`period ${hour}: ${entries.length} players on board (<${MIN_PLAYERS}) — skipped, pool preserved`);
-    return;
-  }
+  const winners = board.filter((e) => isWallet(e.wallet) && (e.score ?? 0) > 0).slice(0, TOP_N);
+  const skipped = board.length - board.filter((e) => isWallet(e.wallet)).length;
+  if (skipped > 0) console.log(`window ${win}: ${skipped} entries skipped (no registered wallet)`);
 
-  const winners = entries
-    .filter((e) => isWallet(e.wallet) && (e.kills ?? 0) >= MIN_KILLS)
-    .slice(0, TOP_N);
-
-  const skipped = entries.length - entries.filter((e) => isWallet(e.wallet)).length;
-  if (skipped > 0) console.log(`period ${hour}: ${skipped} entries skipped (no registered wallet)`);
-
-  if (winners.length === 0) {
-    console.log(`period ${hour}: no payable winners`);
-    paid[hour] = { winners: [], ts: Date.now() };
-    savePaid(paid);
+  if (winners.length < MIN_PLAYERS) {
+    console.log(`window ${win}: ${winners.length} payable winners (<${MIN_PLAYERS}) — skipped, pot preserved`);
     return;
   }
 
   const treasury = loadTreasury();
   const conn = new Connection(RPC, "confirmed");
   const bal = await conn.getBalance(treasury.publicKey);
-  // Available pot = treasury minus a fee buffer (PER_ROUND_SOL > 0 caps it).
   const fullPot = Math.max(0, bal - Math.floor(FEE_BUFFER_SOL * LAMPORTS_PER_SOL));
-  const cappedPot = PER_ROUND_SOL > 0 ? Math.min(Math.floor(PER_ROUND_SOL * LAMPORTS_PER_SOL), fullPot) : fullPot;
-  // Scale by how full the top-7 is: the FULL pot only goes out with 7 winners.
-  // Fewer winners get a proportional slice (winners/7) so a 2-3 player round
-  // doesn't drain the whole pool — the remainder stays in the treasury.
-  const pot = Math.floor((cappedPot * Math.min(winners.length, TOP_N)) / TOP_N);
+  const pot = PER_WINDOW_SOL > 0 ? Math.min(Math.floor(PER_WINDOW_SOL * LAMPORTS_PER_SOL), fullPot) : fullPot;
   if (pot <= 0) {
-    console.log(`period ${hour}: treasury too low (${bal / LAMPORTS_PER_SOL} SOL) — fund it`);
+    console.log(`window ${win}: treasury too low (${bal / LAMPORTS_PER_SOL} SOL) — fund it`);
     return;
   }
-  console.log(`period ${hour}: ${winners.length}/${TOP_N} winners -> pot ${(pot / LAMPORTS_PER_SOL).toFixed(4)} of ${(cappedPot / LAMPORTS_PER_SOL).toFixed(4)} SOL available`);
 
-  const w = WEIGHTS.slice(0, winners.length);
-  const wSum = w.reduce((a, b) => a + b, 0);
+  // SCORE-WEIGHTED split: scores carry one decimal → scale to integer weights for
+  // exact lamport math; the rounding remainder goes to the top scorer.
+  const weights = winners.map((w) => Math.max(0, Math.round((w.score ?? 0) * 10)));
+  const wSum = weights.reduce((a, b) => a + b, 0);
+  if (wSum === 0) {
+    console.log(`window ${win}: zero total score — skipped`);
+    return;
+  }
+  const amounts = weights.map((w) => Math.floor((pot * w) / wSum));
+  amounts[0] += pot - amounts.reduce((a, b) => a + b, 0); // remainder -> top scorer
 
-  // Send all payouts in PARALLEL off a single blockhash so the whole round
-  // disperses in ~1-2s instead of one-tx-at-a-time. Each settles independently.
+  console.log(
+    `window ${win}: ${winners.length} winners, pot ${(pot / LAMPORTS_PER_SOL).toFixed(4)} SOL (score-weighted)` +
+      (DRY_RUN ? " [DRY RUN]" : ""),
+  );
+  if (DRY_RUN) {
+    winners.forEach((w, i) => console.log(`  ${i + 1}. ${w.wallet} score=${w.score} -> ${(amounts[i] / LAMPORTS_PER_SOL).toFixed(4)} SOL`));
+    return;
+  }
+
+  // Send all payouts in PARALLEL off a single blockhash so the window disperses
+  // in ~1-2s. Each settles independently.
   const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
   const results = await Promise.all(
     winners.map(async (winner, i) => {
-      const lamports = Math.floor((pot * w[i]) / wSum);
+      const lamports = amounts[i];
       if (lamports <= 0) return { rank: i + 1, wallet: winner.wallet, sol: 0 };
       const tx = new Transaction({ feePayer: treasury.publicKey, blockhash, lastValidBlockHeight }).add(
-        SystemProgram.transfer({
-          fromPubkey: treasury.publicKey,
-          toPubkey: new PublicKey(winner.wallet),
-          lamports,
-        }),
+        SystemProgram.transfer({ fromPubkey: treasury.publicKey, toPubkey: new PublicKey(winner.wallet), lamports }),
       );
       try {
         const sig = await sendAndConfirmTransaction(conn, tx, [treasury], { commitment: "confirmed" });
@@ -134,14 +132,15 @@ async function payPeriod(hour: number): Promise<void> {
     }),
   );
 
-  paid[hour] = { winners: results, ts: Date.now() };
+  paid[key] = { winners: results, ts: Date.now() };
   savePaid(paid);
-  console.log(`period ${hour}: done`);
+  console.log(`window ${win}: done`);
 }
 
+// Default to the just-closed window (the scheduler fires just after the boundary).
 const arg = process.argv[2];
-const hour = arg ? Number(arg) : Math.floor(Date.now() / PERIOD_MS) - 1;
-payPeriod(hour)
+const win = arg ? Number(arg) : Math.floor(Date.now() / WINDOW_MS) - 1;
+payWindow(win)
   .then(() => process.exit(0))
   .catch((e) => {
     console.error(e);
